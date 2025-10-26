@@ -12,18 +12,28 @@ interface Conversation {
   id: string
   title: string
 }
-interface Props{
-  conversations: Conversation[],
-  setConversations: (conversations: Conversation[]) => void
-}
-export default function HistoryConversation({conversations, setConversations} : Props) {
+
+export default function HistoryConversation() {
   const router = useRouter()
   const params = useParams<{ noteId: string, conversationId: string }>()
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const handleClick = (conversationId: string) => {
     setSelectedId(conversationId)
-    router.replace(`/home/notebook/${params.noteId}/${conversationId}`)
+    router.replace(`/notebook/${params.noteId}/${conversationId}`)
   }
+
+  
+  useEffect(() => {
+    if (!params?.noteId) return
+    const fetchData = async () => {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${params.noteId}`
+      )
+      setConversations(res.data)
+    }
+    fetchData()
+  }, [params.noteId])
 
   useEffect(() => {
     setSelectedId(params.conversationId)
@@ -44,7 +54,7 @@ export default function HistoryConversation({conversations, setConversations} : 
     };
     setConversations([newConversation, ...conversations]);
     setSelectedId(newConversation.id)
-    router.push(`/home/notebook/${params.noteId}/${newConversation.id}`)
+    router.push(`/notebook/${params.noteId}/${newConversation.id}`)
   }
 
   const handleDelete = async (id: string) => {
@@ -65,7 +75,7 @@ export default function HistoryConversation({conversations, setConversations} : 
           newId = "1";
         }
         setSelectedId(newId);
-        router.replace(`/home/notebook/${params.noteId}/${newId}`);
+        router.replace(`/notebook/${params.noteId}/${newId}`);
       }
 
     } catch (error) {
@@ -77,7 +87,7 @@ export default function HistoryConversation({conversations, setConversations} : 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex justify-between items-center p-3 mb-2 sticky top-0 bg-white z-10 border-b rounded-3xl">
+      <div className="flex justify-between items-center p-3 mb-2 sticky top-0 bg-white z-10 border-b">
         <p className="text-lg font-semibold text-gray-800">History</p>
         <CirclePlus
           className="text-gray-500 cursor-pointer hover:text-blue-500 transition-colors"

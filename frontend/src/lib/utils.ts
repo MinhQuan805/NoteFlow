@@ -15,3 +15,5 @@ export const updateTitle = async (apiLink: string) => {
     console.error('Failed to update title', err);
   }
 };
+
+

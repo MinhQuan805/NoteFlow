@@ -1,12 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from schemas.fileSchema import FileListStorage, SingleFile
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
+from schemas.fileSchema import SingleFile
 from config.database import db
 from datetime import datetime, timedelta, timezone
-from bson import ObjectId
-from bson.errors import InvalidId
-from typing import Annotated
 from typing import List
-from libs.cloudinary import upload_files
+from libs.cloudinary import upload_files, delete_file_cloud
+from fastapi import Body
 
 file_collection = db["files"]
 
@@ -15,21 +13,77 @@ router = APIRouter(
     tags=["files"]
 )
 
+# Cleanup Old Files
+async def cleanup_expired_files(notebookId: str):
+    now = datetime.now(timezone.utc)
+    files = await file_collection.find_one({"notebookId": notebookId})
+    if not files:
+        return
+
+    for file in files.get("file_list", []):
+        updated_at = file["updated_at"]
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        if updated_at + timedelta(days=7) < now:
+            await delete_file_cloud(file["public_id"])
+            await file_collection.update_one(
+                {"notebookId": notebookId},
+                {"$pull": {"file_list": {"public_id": file["public_id"]}}}
+            )
+
+# Get All File
+@router.get("/{notebookId}")
+async def get_all_files(notebookId: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(cleanup_expired_files, notebookId)
+    files = await file_collection.find_one(
+        {"notebookId": notebookId},
+        {"_id": 0, "file_list": 1}
+    )
+    if not files:
+        return []
+
+    sorted_files = sorted(files.get("file_list", []), key=lambda f: f["updated_at"], reverse=True)
+    return sorted_files
+
 # Upload file
-@router.post("/upload_files/{notebookId}")
+@router.post("/upload_files/{notebookId}", response_model=List[SingleFile])
 async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
     try:
         uploaded_files = await upload_files(files)
         now = datetime.now(timezone.utc)
-        result = await file_collection.update_one(
+        await file_collection.update_one(
             {"notebookId": notebookId},
             {
                 "$push": {"file_list": {"$each": uploaded_files}},
                 "$set": {"updated_at": now}
             }
         )
+        return uploaded_files
     except:
-        raise HTTPException(status_code=404, detail="Files not found")
+        raise HTTPException(status_code=400, detail="Upload File Error")
+    
+# Upload source
+@router.post("/upload_url/{notebookId}")
+async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(...)):
+    try:
+        now = datetime.now(timezone.utc)
+        newSources = []
+        for source in sources:
+            source_dict = source.model_dump()
+            source_dict["created_at"] = now
+            source_dict["updated_at"] = now
+            newSources.append(source_dict)
+        await file_collection.update_one(
+            {"notebookId": notebookId},
+            {
+                "$push": {"file_list": {"$each": newSources}},
+                "$set": {"updated_at": now}
+            }
+        )
+        return newSources
+    except:
+        raise HTTPException(status_code=400, detail="Upload Url Error")
+
 
 # Create new file storage
 @router.post("/create/{notebookId}")
@@ -40,93 +94,99 @@ async def create_file_storage(notebookId: str):
         "file_list": [],
         "created_at": now,
         "updated_at": now,
-        "deleted": False,
     }
 
     result = await file_collection.insert_one(new_file_storage)
     fileStorageId = str(result.inserted_id)
     return {"fileStorageId": fileStorageId}
 
-# Get all files uploads
-@router.get("/{notebookId}")
-async def get_all_files(notebookId: str):
-    files = await file_collection.find_one({"notebookId": notebookId, "deleted": False}, {"_id": 0, "file_list": 1})
-    return files["file_list"]
-
-# Get file by id
-@router.get("/{file_id}", response_model=FileListStorage)
-async def get_file(file_id: str):
-    try:
-        obj_id = ObjectId(file_id)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid file_id format")
-
-    doc = await file_collection.find_one({"_id": obj_id})
-    if not doc:
-        raise HTTPException(status_code=404, detail="File upload not found")
-
-    return FileListStorage(
-        notebookId=str(doc["notebookId"]),
-        file_list=[SingleFile(**f) for f in doc["file_list"]],
-        created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
-    )
-
-
-
-# Update file upload (add more files)
-@router.patch("/{file_id}", response_model=FileListStorage)
-async def update_file(file_id: str, file_item: SingleFile):
-    try:
-        obj_id = ObjectId(file_id)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid file_id format")
-    now = datetime.now(timezone.utc)
-    
-    doc = await file_collection.find_one({"_id": obj_id}, {"file_list": 1})
-    
-    count = len(doc.get("file_list", []))
-    if count >= 5:
-        raise HTTPException(status_code=400, detail="Number of files exceeded limit")
-    
-    result = await file_collection.update_one(
-        {"_id": obj_id},
-        {
-            "$push": {"file_list": file_item.model_dump()},
-            "$set": {"updated_at": now}
-        }
-    )
-
-    if result.modified_count == 1:
-        doc = await file_collection.find_one({"_id": obj_id})
-        return FileListStorage(
-            notebookId=str(doc["notebookId"]),
-            file_list=[SingleFile(**f) for f in doc["file_list"]],
-            created_at=doc["created_at"],
-            updated_at=doc["updated_at"],
-        )
-    else:
-        raise HTTPException(status_code=404, detail="File upload not found")
-
 # Delete single file upload permanently
-@router.delete("/{notebookId}/{file_id}")
-async def delete_single_file(notebookId: str, file_id: str):
+@router.delete("/delete/{notebookId}/{public_id}/{format}")
+async def delete_single_file(notebookId: str, public_id: str, format: str):
+    if format != "url":
+        await delete_file_cloud(public_id)
+
     result = await file_collection.update_one(
         {"notebookId": notebookId},
-        {"$pull": {"file_list": {"file_id": file_id}}}
+        {"$pull": {"file_list": {"public_id": public_id}}}
     )
 
     if result.modified_count == 1:
         return {"status": True, "message": "File upload deleted permanently"}
     else:
         raise HTTPException(status_code=404, detail="File upload not found")
+    
 
-# Delete all file upload permanently
-@router.delete("/{notebookId}")
-async def delete_file_conversations(notebookId: str):
-    result = await file_collection.delete_one({"notebookId": notebookId})
+# Update title for file
+@router.patch("/update_title/{notebookId}/{public_id}")
+async def update_title(notebookId: str, public_id: str, title: str):
+    try:
+        result = await file_collection.update_one(
+            {"notebookId": notebookId, "file_list.public_id": public_id},
+            {
+                "$set": {
+                    "file_list.$.title": title,
+                    "file_list.$.updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
 
-    if result.deleted_count == 1:
-        return {"status": True, "message": "Files upload deleted permanently"}
-    else:
-        raise HTTPException(status_code=404, detail="Files upload not found")
+        if result.modified_count == 1:
+            return {"status": True, "message": "File title updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Update checked for file
+@router.patch("/update_checked/{notebookId}/{public_id}")
+async def update_checked(notebookId: str, public_id: str, checked: bool):
+    now = datetime.now(timezone.utc)
+    result = await file_collection.update_one(
+        {"notebookId": notebookId, "file_list.public_id": public_id},
+        {"$set": {"file_list.$.checked": checked, "file_list.$.updated_at": now}}
+    )
+    if result.modified_count == 1:
+        return {"status": True, "message": f"Checked updated to {checked}"}
+    raise HTTPException(status_code=404, detail="File not found")
+
+
+import aiohttp
+from fastapi.responses import Response
+import mimetypes
+
+@router.get("/download_file/{notebookId}/{public_id}")
+async def download_file(notebookId: str, public_id: str):
+    # Find notebook in MongoDB
+    file_doc = await file_collection.find_one({"notebookId": notebookId})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Find file in file_list
+    file_item = next((f for f in file_doc.get("file_list", []) if f["public_id"] == public_id), None)
+    if not file_item:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    file_url = file_item["url"]
+    title = file_item["title"]
+
+    content_type, _ = mimetypes.guess_type(title)
+    if not content_type:
+        content_type = "application/octet-stream"
+    # Download file data from Cloudinary
+    async with aiohttp.ClientSession() as session:
+        async with session.get(file_url) as response:
+            if response.status != 200:
+                raise HTTPException(status_code=500, detail="Failed to fetch file")
+
+            # Read all data
+            data = await response.read()
+
+            # Return a response containing that data
+            return Response(
+                content=data,
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f"attachment; title={title}"
+                }
+            )

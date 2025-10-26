@@ -1,0 +1,10 @@
+1/ Nâng cấp lên sử dụng react-query.
+2/ Nâng cấp fetch dữ liệu ở phía server của chính hàm để tối ưu hoá SEO
+export default async function Page() {
+  const res = await fetch('https://api.example.com/products', { cache: 'no-store' })
+  const products = await res.json()
+  return <ProductList products={products} />
+}
+3/ Nâng cấp dự án sử dụng redux cho quản lý dữ liệu
+4/ Nâng cấp phía backend sử dụng graphql
+5/ 

@@ -146,3 +146,5 @@ async def delete_conversation(session_id: str):
         return {"status": True, "message": "Conversation will be deleted"}
     else:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    
+

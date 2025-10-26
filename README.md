@@ -2,7 +2,7 @@
 
 ```
 .
-vietbooklm/
+NoteFlow/
 │── frontend/                          # Giao diện web viết bằng Next.js
 │   ├── public/                        # File tĩnh (logo, favicon, fonts, hình ảnh...)
 │   ├── src/

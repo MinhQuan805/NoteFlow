@@ -1,6 +1,6 @@
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { MessageItem } from '@/types/conversation.interface';
+import { MessageItem } from '@/schemas/conversation.interface';
 import axios from 'axios';
 
 const google = createGoogleGenerativeAI({

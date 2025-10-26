@@ -34,10 +34,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
-
-// Custom Components / Alerts
-import AlertError from "@/components/alerts/AlertError"
-
+import { toast } from "react-toastify"
 
 // Main component to center the drawer trigger
 export default function CreateNote() {
@@ -96,8 +93,6 @@ function NoteForm() {
   const router = useRouter()
   const [loading, setLoading] = React.useState(false)
 
-  // Error alert state
-  const [error, setError] = React.useState<string | null>(null)
 
   // React Hook Form with Zod validation
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -115,10 +110,11 @@ function NoteForm() {
     try {
       // Send POST request to create a new notebook
       const resNote  = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/create`, data)
-      router.push(`/home/notebook/${resNote.data.notebookId}/${resNote.data.conversationId}`)
+      toast.success("Notebook created successfully!")
+      router.push(`/notebook/${resNote.data.notebookId}/${resNote.data.conversationId}`)
     } catch (err: any) {
       console.error(err)
-      setError("Cannot create notebook. Please try again later.")
+      toast.error("Cannot create notebook. Please try again later.")
     } finally {
       setLoading(false)
     }
@@ -126,13 +122,6 @@ function NoteForm() {
 
   return (
     <>
-      {/* Display error alert if any */}
-      {error && (
-        <div className="fixed top-4 right-4 z-50">
-          <AlertError title="Error" message={error} />
-        </div>
-      )}
-
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

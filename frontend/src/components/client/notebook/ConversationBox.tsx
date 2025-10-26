@@ -1,7 +1,7 @@
 'use client'
 
 // React hooks
-import { useState, useEffect, useRef, type FormEventHandler } from 'react'
+import { useState, useEffect, useRef, useMemo, type FormEventHandler } from 'react'
 import { useParams } from 'next/navigation'
 import { Fragment } from 'react';
 import { useChat } from '@ai-sdk/react';
@@ -28,21 +28,19 @@ import {
   Actions
 } from '@/components/ui/shadcn-io/ai/actions';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ui/shadcn-io/ai/reasoning';
+import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
 
 // Icon
 import { CopyIcon, Loader, RefreshCcwIcon } from 'lucide-react';
 
-// Custom alert component
-import AlertError from '@/components/alerts/AlertError'
-
 // Packages
 import axios from 'axios';
 import * as z from 'zod';
+import { toast } from 'react-toastify'
 
 // Interface
-import { MessageItem } from '@/types/conversation.interface'
+import { MessageItem } from '@/schemas/conversation.interface'
 import { updateTitle } from '@/lib/utils';
-import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
 
 export default function ConversationBox() {
 
@@ -89,8 +87,6 @@ export default function ConversationBox() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
-  // Alert state for error messages
-  const [error, setError] = useState<string | null>(null);
 
   // Validation schema for user input using zod
   const schema = z.object({
@@ -105,11 +101,9 @@ export default function ConversationBox() {
 
     const result = schema.safeParse({ query: text });
     if (!result.success) {
-      setError('Please enter a valid query');
+      toast.error('Please enter a valid query');
       return;
     }
-
-    setError(null);
 
     // Create a new message object
     const newMessage: MessageItem = {
@@ -134,19 +128,87 @@ export default function ConversationBox() {
       setText('');
     } catch (err) {
       console.error('Error posting:', err);
-      setError('Cannot connect to server, please try again.');
+      toast.error('Cannot connect to server, please try again.');
     }
   };
 
+  const renderedMessages = useMemo(() => {
+    return messages.map((message) => (
+      <div key={message.id}>
+        {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
+          <Sources>
+            <SourcesTrigger
+              count={
+                message.parts.filter(
+                  (part) => part.type === 'source-url',
+                ).length
+              }
+            />
+            {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
+              <SourcesContent key={`${message.id}-${i}`}>
+                <Source
+                  key={`${message.id}-${i}`}
+                  href={part.url}
+                  title={part.url}
+                />
+              </SourcesContent>
+            ))}
+          </Sources>
+        )}
+        
+        {message.parts.map((part, i) => {
+          switch (part.type) {
+            case 'text':
+              return (
+                <Fragment key={`${message.id}-${i}`}>
+                  <Message className="max-w-full" from={message.role}>
+                    <MessageContent>
+                      {message.role === 'assistant' ?
+                        <Response>{part.text}</Response>
+                        : (
+                          <p className="whitespace-pre-wrap break-words">{part.text}</p>
+                      )}
+                    </MessageContent>
+                  </Message>
+                  {message.role === 'assistant' && i === messages.length - 1 && (
+                    <Actions className="mt-2">
+                      <Action
+                        label="Retry"
+                      >
+                        <RefreshCcwIcon className="size-3" />
+                      </Action>
+                      <Action
+                        onClick={() =>
+                          navigator.clipboard.writeText(part.text)
+                        }
+                        label="Copy"
+                      >
+                        <CopyIcon className="size-3" />
+                      </Action>
+                    </Actions>
+                  )}
+                </Fragment>
+              );
+            case 'reasoning':
+              return (
+                <Reasoning
+                  key={`${message.id}-${i}`}
+                  className="w-full"
+                  isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                >
+                  <ReasoningTrigger />
+                  <ReasoningContent>{part.text}</ReasoningContent>
+                </Reasoning>
+              );
+            default:
+              return null;
+          }
+        })}
+      </div>
+    ));
+  }, [messages, status]);
   return (
     <div className="flex flex-col h-full w-full relative">
-
-      {/* Display error alerts */}
-      {error && (
-        <div className="fixed top-4 right-4 z-50">
-          <AlertError title="Error" message={error} />
-        </div>
-      )}
       {/* Conversation messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 pb-28">
         {loading ? (
@@ -156,76 +218,7 @@ export default function ConversationBox() {
         ) : (
           <Conversation>
             <ConversationContent>
-              {messages.map((message) => (
-                <div key={message.id}>
-                  {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                    <Sources>
-                      <SourcesTrigger
-                        count={
-                          message.parts.filter(
-                            (part) => part.type === 'source-url',
-                          ).length
-                        }
-                      />
-                      {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                        <SourcesContent key={`${message.id}-${i}`}>
-                          <Source
-                            key={`${message.id}-${i}`}
-                            href={part.url}
-                            title={part.url}
-                          />
-                        </SourcesContent>
-                      ))}
-                    </Sources>
-                  )}
-                  {message.parts.map((part, i) => {
-                    switch (part.type) {
-                      case 'text':
-                        return (
-                          <Fragment key={`${message.id}-${i}`}>
-                            <Message className="max-w-full" from={message.role}>
-                              <MessageContent>
-                                <Response>
-                                  {part.text}
-                                </Response>
-                              </MessageContent>
-                            </Message>
-                            {message.role === 'assistant' && i === messages.length - 1 && (
-                              <Actions className="mt-2">
-                                <Action
-                                  label="Retry"
-                                >
-                                  <RefreshCcwIcon className="size-3" />
-                                </Action>
-                                <Action
-                                  onClick={() =>
-                                    navigator.clipboard.writeText(part.text)
-                                  }
-                                  label="Copy"
-                                >
-                                  <CopyIcon className="size-3" />
-                                </Action>
-                              </Actions>
-                            )}
-                          </Fragment>
-                        );
-                      case 'reasoning':
-                        return (
-                          <Reasoning
-                            key={`${message.id}-${i}`}
-                            className="w-full"
-                            isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
-                          >
-                            <ReasoningTrigger />
-                            <ReasoningContent>{part.text}</ReasoningContent>
-                          </Reasoning>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
-                </div>
-              ))}
+              {renderedMessages}
               {status === 'submitted' && <Loader />}
             </ConversationContent>
             <ConversationScrollButton/>
