@@ -1,4 +1,4 @@
-// lib/noteApi.ts
+
 import { Note } from "@/schemas/note.interface";
 import { sendRequest } from "@/utils/api";
 

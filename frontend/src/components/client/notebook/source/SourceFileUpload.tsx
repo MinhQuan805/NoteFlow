@@ -23,11 +23,11 @@ const icons = [
   { format: 'url', source: '/icon/format/url.png'},
 ]
 
-export default function SourceFileUpload() {
+export default function SourceFileUpload({ initialFiles}: { initialFiles: SingleFile[] }) {
   const [actionOpen, setActionOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   
-  const [files, setFiles] = useState<SingleFile[]>([])
+  const [files, setFiles] = useState(initialFiles)
   
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDownload, setLoadingDownload] = useState<string | null>(null)
@@ -35,18 +35,18 @@ export default function SourceFileUpload() {
   const params = useParams<{ notebookId: string, conversationId: string }>()
   const { toggleSelectFile, toggleSelectAll } = useFileSelect(params.notebookId, files, setFiles)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/files/${params.notebookId}`)
-        setFiles(res.data)
-      } catch (error) {
-        console.error("Failed to fetch files:", error);
-      }
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/files/${params.notebookId}`)
+  //       setFiles(res.data)
+  //     } catch (error) {
+  //       console.error("Failed to fetch files:", error);
+  //     }
       
-    }
-    fetchData()
-  }, [params.notebookId])
+  //   }
+  //   fetchData()
+  // }, [params.notebookId])
   
   const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;

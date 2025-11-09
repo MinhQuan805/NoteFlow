@@ -7,16 +7,14 @@ import { useParams } from 'next/navigation'
 import { CirclePlus, MoreVertical } from 'lucide-react'
 import axios from 'axios'
 import ActionTrigger from "@/components/client/ActionTrigger"
+import { ConversationList } from "@/schemas/conversation.interface"
+import { toast } from "react-toastify"
 
-interface Conversation {
-  id: string
-  title: string
-}
 
-export default function HistoryConversation() {
+export default function HistoryConversation({ initialConversations }: { initialConversations: ConversationList[] }) {
   const router = useRouter()
   const params = useParams<{ notebookId: string, conversationId: string }>()
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState(initialConversations)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const handleClick = (conversationId: string) => {
     setSelectedId(conversationId)
@@ -24,16 +22,16 @@ export default function HistoryConversation() {
   }
 
   
-  useEffect(() => {
-    if (!params?.notebookId) return
-    const fetchData = async () => {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${params.notebookId}`
-      )
-      setConversations(res.data)
-    }
-    fetchData()
-  }, [params.notebookId])
+  // useEffect(() => {
+  //   if (!params?.notebookId) return
+  //   const fetchData = async () => {
+  //     const res = await axios.get(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${params.notebookId}`
+  //     )
+  //     setConversations(res.data)
+  //   }
+  //   fetchData()
+  // }, [params.notebookId])
 
   useEffect(() => {
     setSelectedId(params.conversationId)
@@ -48,7 +46,7 @@ export default function HistoryConversation() {
       {},
       { headers: { 'Content-Type': 'application/json' } }
     );
-    const newConversation: Conversation = {
+    const newConversation: ConversationList = {
       id: resCon.data.conversationId,
       title: resCon.data.title
     };
@@ -79,7 +77,7 @@ export default function HistoryConversation() {
       }
 
     } catch (error) {
-      console.error("Failed to delete conversation:", error);
+      toast.error("Failed to delete conversation:");
     }
   };
 

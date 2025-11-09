@@ -21,3 +21,8 @@ export interface Conversation {
   deleted_at?: Date | null;
   expireAt?: Date | null;
 }
+
+export interface ConversationList {
+  id: string
+  title: string
+}
