@@ -19,14 +19,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { text, sources } = await generateText({
+    const { text } = await generateText({
       model: google("gemini-2.5-flash"),
       tools: {
         google_search: google.tools.googleSearch({}),
       },
       prompt: `List the top 5 results for "${query}". 
               Return JSON format: { "url": "...", "title": "...", "description": "...", "format": "url", "checked": true }
-        `,
+              `,
     });
     let raw = text;
     raw = raw.replace(/^```json\s*/, '').replace(/\s*```$/, '');

@@ -15,25 +15,25 @@ interface Conversation {
 
 export default function HistoryConversation() {
   const router = useRouter()
-  const params = useParams<{ noteId: string, conversationId: string }>()
+  const params = useParams<{ notebookId: string, conversationId: string }>()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const handleClick = (conversationId: string) => {
     setSelectedId(conversationId)
-    router.replace(`/notebook/${params.noteId}/${conversationId}`)
+    router.replace(`/notebook/${params.notebookId}/${conversationId}`)
   }
 
   
   useEffect(() => {
-    if (!params?.noteId) return
+    if (!params?.notebookId) return
     const fetchData = async () => {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${params.noteId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${params.notebookId}`
       )
       setConversations(res.data)
     }
     fetchData()
-  }, [params.noteId])
+  }, [params.notebookId])
 
   useEffect(() => {
     setSelectedId(params.conversationId)
@@ -44,7 +44,7 @@ export default function HistoryConversation() {
   }, [params.conversationId])
 
   const createConversation = async () => {
-    const resCon = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/conversations/create/${params.noteId}`, 
+    const resCon = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/conversations/create/${params.notebookId}`, 
       {},
       { headers: { 'Content-Type': 'application/json' } }
     );
@@ -54,7 +54,7 @@ export default function HistoryConversation() {
     };
     setConversations([newConversation, ...conversations]);
     setSelectedId(newConversation.id)
-    router.push(`/notebook/${params.noteId}/${newConversation.id}`)
+    router.push(`/notebook/${params.notebookId}/${newConversation.id}`)
   }
 
   const handleDelete = async (id: string) => {
@@ -75,7 +75,7 @@ export default function HistoryConversation() {
           newId = "1";
         }
         setSelectedId(newId);
-        router.replace(`/notebook/${params.noteId}/${newId}`);
+        router.replace(`/notebook/${params.notebookId}/${newId}`);
       }
 
     } catch (error) {

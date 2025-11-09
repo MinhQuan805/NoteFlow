@@ -32,13 +32,13 @@ export default function SourceFileUpload() {
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDownload, setLoadingDownload] = useState<string | null>(null)
 
-  const params = useParams<{ noteId: string, conversationId: string }>()
-  const { toggleSelectFile, toggleSelectAll } = useFileSelect(params.noteId, files, setFiles)
+  const params = useParams<{ notebookId: string, conversationId: string }>()
+  const { toggleSelectFile, toggleSelectAll } = useFileSelect(params.notebookId, files, setFiles)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/files/${params.noteId}`)
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/files/${params.notebookId}`)
         setFiles(res.data)
       } catch (error) {
         console.error("Failed to fetch files:", error);
@@ -46,7 +46,7 @@ export default function SourceFileUpload() {
       
     }
     fetchData()
-  }, [params.noteId])
+  }, [params.notebookId])
   
   const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -56,7 +56,7 @@ export default function SourceFileUpload() {
 
     try {
       setLoadingAdd(true)
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_files/${params.noteId}`,
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_files/${params.notebookId}`,
         formData)
       setFiles([...res.data, ...files])
     } catch (err) {
@@ -70,7 +70,7 @@ export default function SourceFileUpload() {
   const handleDownloadFile = async (public_id: string) => {
     setLoadingDownload(public_id);
     const link = document.createElement('a');
-    link.href = `${process.env.NEXT_PUBLIC_API_URL}/files/download_file/${params.noteId}/${public_id}`;
+    link.href = `${process.env.NEXT_PUBLIC_API_URL}/files/download_file/${params.notebookId}/${public_id}`;
     link.setAttribute('download', '');
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -83,7 +83,7 @@ export default function SourceFileUpload() {
 
   const handleDeleteFile = async (public_id: string, format: string) => {
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/files/delete/${params.noteId}/${public_id}/${format}`);
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/files/delete/${params.notebookId}/${public_id}/${format}`);
       
       // Filter remained files
       const updatedFiles = files.filter(c => c.public_id !== public_id);
@@ -137,7 +137,7 @@ export default function SourceFileUpload() {
                   ? <ActionTrigger className="text-gray-500 hover:bg-gray-200 rounded-full" 
                                   apiLink={`files`} 
                                   onDelete={() => handleDeleteFile(file.public_id, file.format)}
-                                  id={`${params.noteId}/${file.public_id}/${file.format}`}
+                                  id={`${params.notebookId}/${file.public_id}/${file.format}`}
                     />
                   : <img src={icons.find(icon => icon.format === file.format)?.source || '/icon/format/other.png'} 
                           alt="file icon" className="w-5 h-5"/>}

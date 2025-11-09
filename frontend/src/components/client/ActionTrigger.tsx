@@ -93,12 +93,16 @@ export default function ActionTrigger({ className, apiLink, onDelete, id}: Actio
           <MoreVertical className={className} size={20} />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-30">
-          <DropdownMenuItem
-            onClick={() => setOpen(true)}
-            className="cursor-pointer flex items-center gap-2"
-          >
-            <FaPen /> <p>Rename</p>
-          </DropdownMenuItem>
+          {
+            apiLink !== "notes" && (
+              <DropdownMenuItem
+                onClick={() => setOpen(true)}
+                className="cursor-pointer flex items-center gap-2"
+              >
+                <FaPen /> <p>Rename</p>
+              </DropdownMenuItem>
+            )
+          }
           <DropdownMenuItem
             onClick={onDelete}
             className="cursor-pointer flex items-center gap-2"

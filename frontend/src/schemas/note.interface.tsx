@@ -45,3 +45,8 @@ export interface NoteContainer {
   created_at: Date
   updated_at: Date;
 }
+
+export interface Note {
+  id: string
+  title: string
+}

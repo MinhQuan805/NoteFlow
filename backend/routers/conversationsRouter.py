@@ -54,7 +54,7 @@ async def get_conversation(session_id: str):
 @router.post("/create/{notebookId}")
 async def create_conversation(notebookId: str):
     try:
-        notebook_obj_id = ObjectId(notebookId)
+        _ = ObjectId(notebookId)
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid notebookId format")
     now = datetime.now(timezone.utc)

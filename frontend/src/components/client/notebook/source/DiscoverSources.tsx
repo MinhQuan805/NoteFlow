@@ -73,7 +73,7 @@ export default function DiscoverSources(
                           { onImportComplete }: { onImportComplete?: (files: SingleFile[]) => void }) {
   const [showResult, setShowResult] = useState(false);
   const [sources, setSources] = useState<SingleLink[]>([])
-  const params = useParams<{ noteId: string, conversationId: string }>()
+  const params = useParams<{ notebookId: string, conversationId: string }>()
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
@@ -113,7 +113,7 @@ export default function DiscoverSources(
     const sourcesImport = sources.filter(f => f.checked)
                                   .map(({ description, ...rest }) => rest); // Delete description before import to SingleFile
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_url/${params.noteId}`, sourcesImport)
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_url/${params.notebookId}`, sourcesImport)
       if (onImportComplete) onImportComplete(sourcesImport)
     } catch (err) {
       console.error("Import failed:", err)

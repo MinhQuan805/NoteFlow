@@ -24,6 +24,7 @@ InlineContent = Union[Link, StyledText, CustomInlineContent]
 class TableContent(BaseModel):
     rows: Optional[List[List[StyledText]]] = None
 
+
 class Note(BaseModel):
     id: str
     type: str
@@ -31,12 +32,17 @@ class Note(BaseModel):
     content: Optional[Union[List[InlineContent], TableContent]] = None
     children: List["Note"] = Field(default_factory=list)
 
+
 # Rebuild the model to resolve forward references (required for self-referential models)
 Note.model_rebuild()
 
-class NoteContainer(BaseModel):
+class UpdateNoteRequest(BaseModel):
     title: str
+    blocks: List[Note]
+    
+class NoteContainer(BaseModel):
     notebookId: str
+    title: str
     blocks : List[Note] = []
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime

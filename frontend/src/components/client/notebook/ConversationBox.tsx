@@ -44,7 +44,7 @@ import { updateTitle } from '@/lib/utils';
 
 export default function ConversationBox() {
 
-  const params = useParams<{noteId: string; conversationId: string}>();
+  const params = useParams<{notebookId: string; conversationId: string}>();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false)
 
