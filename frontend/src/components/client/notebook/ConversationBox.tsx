@@ -40,7 +40,7 @@ import { toast } from 'react-toastify'
 
 // Interface
 import { MessageItem } from '@/schemas/conversation.interface'
-import { updateTitle } from '@/lib/utils';
+import { updateTitle } from '@/lib/actionApi';
 
 export default function ConversationBox() {
 
@@ -238,7 +238,7 @@ export default function ConversationBox() {
           />
 
           <PromptInputToolbar className='justify-end'>
-            <PromptInputSubmit className='rounded-4xl mr-1 mb-1' status={status} disabled={!text} />
+            <PromptInputSubmit className='rounded-4xl mr-1 mb-1 cursor-pointer' status={status} disabled={!text} />
           </PromptInputToolbar>
         </PromptInput>
       </div>

@@ -1,99 +1,39 @@
-'use client'
+// // SourceFileUpload.tsx
 
-import { useState, useEffect } from 'react'
+'use client'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import ActionTrigger from '../../ActionTrigger'
-import { Checkbox } from "@/components/ui/checkbox"
-import { Download, ExternalLink, Plus} from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import axios from 'axios'
-import { SingleFile } from '@/schemas/fileStorage.interface'
-import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
-import DiscoverSources from './DiscoverSources'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Download, ExternalLink, Plus } from 'lucide-react'
+import { Spinner } from '@/components/ui/shadcn-io/spinner'
+import DiscoverSource from './DiscoverSource'
+import ActionTrigger from '@/components/client/ActionTrigger'
+import { useSource } from '@/hooks/useSource'
 import { useFileSelect } from '@/hooks/useFileSelect'
+import { SingleFile } from '@/schemas/fileStorage.interface'
+import AddSource from './AddSource'
 
 const icons = [
-  { format: 'pdf', source: '/icon/format/pdf.png'},
-  { format: 'docx', source: '/icon/format/docx.png'},
-  { format: 'pptx', source: '/icon/format/pptx.png'},
-  { format: 'txt', source: '/icon/format/txt.png'},
-  { format: 'md', source: '/icon/format/md.png'},
-  { format: 'csv', source: '/icon/format/csv.png'},
-  { format: 'json', source: '/icon/format/json.png'},
-  { format: 'url', source: '/icon/format/url.png'},
+  { format: 'pdf', source: '/icon/format/pdf.png' },
+  { format: 'docx', source: '/icon/format/docx.png' },
+  { format: 'pptx', source: '/icon/format/pptx.png' },
+  { format: 'txt', source: '/icon/format/txt.png' },
+  { format: 'md', source: '/icon/format/md.png' },
+  { format: 'csv', source: '/icon/format/csv.png' },
+  { format: 'json', source: '/icon/format/json.png' },
+  { format: 'url', source: '/icon/format/url.png' },
 ]
 
-export default function SourceFileUpload({ initialFiles}: { initialFiles: SingleFile[] }) {
-  const [actionOpen, setActionOpen] = useState(false)
+export default function SourceFileUpload({ initialFiles }: { initialFiles: SingleFile[] }) {
+  const params = useParams<{ notebookId: string }>()
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  
-  const [files, setFiles] = useState(initialFiles)
-  
-  const [loadingAdd, setLoadingAdd] = useState(false)
-  const [loadingDownload, setLoadingDownload] = useState<string | null>(null)
+  const [actionOpen, setActionOpen] = useState(false)
 
-  const params = useParams<{ notebookId: string, conversationId: string }>()
+  const { files, addFile, deleteFile, 
+          downloadFile, setFiles, loadingAdd, loadingDownload 
+        } = useSource(initialFiles, params.notebookId)
+        
   const { toggleSelectFile, toggleSelectAll } = useFileSelect(params.notebookId, files, setFiles)
-
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/files/${params.notebookId}`)
-  //       setFiles(res.data)
-  //     } catch (error) {
-  //       console.error("Failed to fetch files:", error);
-  //     }
-      
-  //   }
-  //   fetchData()
-  // }, [params.notebookId])
-  
-  const handleAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const formData = new FormData();
-    Array.from(e.target.files).forEach(file => formData.append("files", file))
-
-
-    try {
-      setLoadingAdd(true)
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_files/${params.notebookId}`,
-        formData)
-      setFiles([...res.data, ...files])
-    } catch (err) {
-      console.log(err)
-    } finally {
-      setLoadingAdd(false)
-    }
-  }
-
-  // Download File
-  const handleDownloadFile = async (public_id: string) => {
-    setLoadingDownload(public_id);
-    const link = document.createElement('a');
-    link.href = `${process.env.NEXT_PUBLIC_API_URL}/files/download_file/${params.notebookId}/${public_id}`;
-    link.setAttribute('download', '');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    // Simulator "Loading"
-    setTimeout(() => setLoadingDownload(null), 1000);
-  };
-
-  const handleDeleteFile = async (public_id: string, format: string) => {
-    try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/files/delete/${params.notebookId}/${public_id}/${format}`);
-      
-      // Filter remained files
-      const updatedFiles = files.filter(c => c.public_id !== public_id);
-      setFiles(updatedFiles);
-
-    } catch (error) {
-      console.error("Failed to delete file:", error);
-    }
-  }
-
 
   return (
     <div className="flex flex-col h-full">
@@ -102,24 +42,17 @@ export default function SourceFileUpload({ initialFiles}: { initialFiles: Single
       </div>
 
       <div className="flex flex-row space-x-2 p-2">
-        <label className="w-1/2 h-10 flex font-semibold justify-center items-center gap-1 px-3 py-1.5 text-sm rounded-3xl cursor-pointer border border-gray-300 hover:bg-gray-100">
-          <Input type="file" className="hidden" multiple onChange={handleAddFile}/>
-          {loadingAdd ? (
-            <Spinner variant="ring" className="w-4 h-4" />
-          ) : (
-            <>
-              <Plus size={16} />Add
-            </>
-          )}
-        </label>
         <div className="w-1/2">
-          <DiscoverSources onImportComplete={(newFiles) => setFiles(prev => [...newFiles, ...prev])} />
+          <AddSource onAdd={addFile} loading={loadingAdd} />
+        </div>
+        <div className="w-1/2">
+          <DiscoverSource onImportComplete={(newFiles) => setFiles(prev => [...newFiles, ...prev])} />
         </div>
       </div>
 
       <div className="flex justify-between items-center px-4 py-1 bg-white z-10">
         <span className="text-sm text-gray-700">Select all sources</span>
-        <Checkbox className="cursor-pointer" checked={files.length > 0 && files.every(f => f.checked)} onCheckedChange={toggleSelectAll}/>
+        <Checkbox checked={files.length > 0 && files.every(f => f.checked)} onCheckedChange={toggleSelectAll} />
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-1 p-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -132,44 +65,31 @@ export default function SourceFileUpload({ initialFiles}: { initialFiles: Single
             }`}
           >
             <div className="flex items-center space-x-2 w-3/4 overflow-hidden">
-              <div className="w-5 h-5 flex-shrink-0">
+              <div className="flex items-center flex-shrink-0">
                 {(actionOpen && file.public_id === selectedId)
-                  ? <ActionTrigger className="text-gray-500 hover:bg-gray-200 rounded-full" 
-                                  apiLink={`files`} 
-                                  onDelete={() => handleDeleteFile(file.public_id, file.format)}
-                                  id={`${params.notebookId}/${file.public_id}/${file.format}`}
+                  ? <ActionTrigger
+                      className="text-gray-500 hover:bg-gray-200 rounded-full"
+                      apiLink={`files`}
+                      onDelete={() => deleteFile(file.public_id, file.format)}
+                      id={`${params.notebookId}/${file.public_id}/${file.format}`}
                     />
-                  : <img src={icons.find(icon => icon.format === file.format)?.source || '/icon/format/other.png'} 
-                          alt="file icon" className="w-5 h-5"/>}
+                  : <img src={icons.find(i => i.format === file.format)?.source || '/icon/format/other.png'} alt="file icon" className="w-5 h-5" />}
               </div>
               <span className="text-gray-700 text-sm truncate w-full">{file.title}</span>
             </div>
             <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center hover:bg-gray-200 rounded-full w-7 h-7">
-                  {file.format !== "url" ? (
-                    // Display Download Button For File
-                    loadingDownload === file.public_id ? (
-                      <Spinner variant="ring" className="w-4 h-4" />
-                    ) : (
-                      <Download
-                        className="text-gray-500 w-5 h-5"
-                        onClick={() => handleDownloadFile(file.public_id)}
-                      />
-                    )
+              <div className="flex items-center justify-center hover:bg-gray-200 rounded-full w-7 h-7">
+                {file.format !== "url" ? (
+                  loadingDownload === file.public_id ? (
+                    <Spinner variant="ring" className="w-4 h-4" />
                   ) : (
-                    // Display Open Link Button For File
-                    <ExternalLink
-                      className="text-gray-500 w-5 h-5"
-                      onClick={() => window.open(file.url, "_blank")}
-                    />
-                  )}
-                </div>
-
-              <Checkbox
-                className="cursor-pointer"
-                checked={file.checked}
-                onCheckedChange={() => toggleSelectFile(file.public_id, file.checked)}
-              />
+                    <Download className="text-gray-500 w-5 h-5" onClick={() => downloadFile(file.public_id)} />
+                  )
+                ) : (
+                  <ExternalLink className="text-gray-500 w-5 h-5" onClick={() => window.open(file.url, "_blank")} />
+                )}
+              </div>
+              <Checkbox checked={file.checked} onCheckedChange={() => toggleSelectFile(file.public_id, file.checked)} />
             </div>
           </div>
         ))}

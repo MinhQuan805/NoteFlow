@@ -3,7 +3,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/actionApi';
 import type { UIMessage } from 'ai';
 import type { ComponentProps, HTMLAttributes } from 'react';
 

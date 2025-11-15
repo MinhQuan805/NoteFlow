@@ -86,8 +86,9 @@ export default function CreateNote() {
 // Zod schema for form validation
 const FormSchema = z.object({
   title: z.string().min(1, { message: "Please enter a title" }),
-  avatar: z.string().optional(),
-  bgcolor: z.string().optional()
+  avatar: z.instanceof(File).optional(),
+  bgcolor: z.string().optional(),
+  idAvatar: z.string().optional()
 })
 
 // Notebook creation form component
@@ -101,8 +102,8 @@ function NoteForm() {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       title: "",
-      avatar: "",
-      bgcolor: ""
+      bgcolor: "",
+      idAvatar: "",
     },
   })
 
@@ -118,11 +119,24 @@ function NoteForm() {
     try {
       // Send POST request to create a new notebook
 
-      // Create random background color if it doesn't have avatar
-      if (data.avatar === "") {
+      // Upload image to server
+      if (data.avatar) {
+        const formData = new FormData();
+        formData.append("image", data.avatar);
+        const resImage = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/upload_image`, formData);
+        data.avatar = resImage.data.url;
+        data.idAvatar = resImage.data.idAvatar;
+      }
+
+      if (!data.avatar) {
         const random = Math.floor(Math.random() * randomColor.length);
         data.bgcolor = randomColor[random];
-        console.log(data);
+      }
+
+      // Create random background color if it doesn't have avatar
+      if (!data.avatar) {
+        const random = Math.floor(Math.random() * randomColor.length);
+        data.bgcolor = randomColor[random];
       }
       const resNote  = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/create`, data)
       toast.success("Notebook created successfully!")
@@ -134,7 +148,6 @@ function NoteForm() {
       setLoading(false)
     }
   }
-
   return (
     <>
       <Form {...form}>
@@ -153,11 +166,7 @@ function NoteForm() {
                   <div className="relative">
                     {/* Icon inside input */}
                     <CiStickyNote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Enter title"
-                      className="pl-10"
-                      {...field}
-                    />
+                    <Input placeholder="Enter title" className="pl-10" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -171,12 +180,27 @@ function NoteForm() {
             name="avatar"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Avatar</FormLabel>
+                <FormLabel>Avatar (Option)</FormLabel>
                 <FormControl>
                   <Input
-                    type="text"
+                    type="file"
+                    className="cursor-pointer"
                     placeholder="Paste image URL or leave empty"
-                    {...field}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/tiff"];
+                      if (file) {
+                        if (!validImageTypes.includes(file.type)) {
+                          toast.error("Please select a image");
+                          field.onChange(null);
+                          e.target.value = "";
+                          return;
+                        }
+                        field.onChange(file);
+                      } else {
+                        field.onChange(null);
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />

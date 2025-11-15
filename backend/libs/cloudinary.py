@@ -48,20 +48,39 @@ async def upload_files(files: List[UploadFile]):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading files: {str(e)}"
         )
-    
-async def delete_file_cloud(public_id: str):
+
+async def upload_image(image: UploadFile):
+    try:
+        upload_result = upload(
+            image.file,
+            folder="Note_Learning",
+            resource_type="image"
+        )
+        uploaded = {
+            "idAvatar": upload_result.get("public_id").split("/")[-1],
+            "url": upload_result['secure_url']
+        }
+        return uploaded
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error uploading images: {e}")
+
+
+async def delete_cloud_file(public_id: str, file_type: str = "raw"):
+    """
+    file_type: "image", "raw" for document
+    """
     try:
         folder = "Note_Learning"
         full_public_id = f"{folder}/{public_id}"
-        result = destroy(full_public_id, resource_type="raw")
+        result = destroy(full_public_id, resource_type=file_type)
         if result.get("result") not in ["ok", "not found"]:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to delete from Cloudinary: {result}"
+                detail=f"Failed to delete {file_type} from Cloudinary: {result}"
             )
         return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting file: {str(e)}"
+            detail=f"Error deleting {file_type}: {str(e)}"
         )

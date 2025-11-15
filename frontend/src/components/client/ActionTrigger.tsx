@@ -12,7 +12,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { updateTitle } from "@/lib/utils"
+import { updateTitle } from "@/lib/actionApi"
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -90,7 +90,9 @@ export default function ActionTrigger({ className, apiLink, onDelete, id}: Actio
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <MoreVertical className={className} size={20} />
+          <div className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
+            <MoreVertical className={className} size={20} />
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-30">
           {

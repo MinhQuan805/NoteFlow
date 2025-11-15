@@ -21,7 +21,6 @@ export default function Home() {
         try {
           setLoading(true)
           const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notebooks`)
-          console.log(res.data)
           setNotebooks(res.data)
         } catch (err) {
           toast.error("Failed to load notes")
@@ -32,30 +31,20 @@ export default function Home() {
       fetchData()
     }, [])
   
-  const handleDelete = async (id: string) => {
-    // try {
-    //   await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/conversations/delete/${id}`);
+  const handleDelete = async (id: string, idAvatar: string) => {
+    try {
+      if (!idAvatar) {
+        idAvatar = "noAvatar"
+      }
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/delete/${id}/${idAvatar}`);
       
-    //   // Filter remained conversation 
-    //   const updatedConversations = conversations.filter(c => c.id !== id);
-    //   setConversations(updatedConversations);
+      // Filter remained notebook
+      const updatedNotebooks = notebooks.filter(c => c.id !== id);
+      setNotebooks(updatedNotebooks);
 
-    //   var newId = selectedId
-    //   if (selectedId === id) {
-    //     if (updatedConversations.length > 0) {
-    //       newId = updatedConversations[0].id;
-    //     }
-    //     else {
-    //       // When no conversation left, create a new one
-    //       newId = "1";
-    //     }
-    //     setSelectedId(newId);
-    //     router.replace(`/notebook/${params.notebookId}/${newId}`);
-    //   }
-
-    // } catch (error) {
-    //   console.error("Failed to delete conversation:", error);
-    // }
+    } catch (error) {
+      toast.error("Failed to delete conversation");
+    }
   };
   const handleLearn = async (notebookId: string) => {
     setLoading(true)
@@ -102,12 +91,14 @@ export default function Home() {
                 <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/100 to-transparent" />
               )}
               <div
-                onClick={(e) => e.stopPropagation()}
+                onClick={
+                  (e) => e.stopPropagation()
+                }
               >
                 <ActionTrigger
                   className="text-gray-500"
                   apiLink={`notebooks`}
-                  onDelete={() => handleDelete(notebook.id)}
+                  onDelete={() => handleDelete(notebook.id, notebook.idAvatar)}
                   id={notebook.id}
                 />
               </div>

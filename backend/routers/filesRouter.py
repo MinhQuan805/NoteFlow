@@ -3,7 +3,7 @@ from schemas.fileSchema import SingleFile
 from config.database import db
 from datetime import datetime, timedelta, timezone
 from typing import List
-from libs.cloudinary import upload_files, delete_file_cloud
+from libs.cloudinary import upload_files, delete_cloud_file
 from fastapi import Body
 
 file_collection = db["files"]
@@ -25,7 +25,7 @@ async def cleanup_expired_files(notebookId: str):
         if updated_at.tzinfo is None:
             updated_at = updated_at.replace(tzinfo=timezone.utc)
         if updated_at + timedelta(days=7) < now:
-            await delete_file_cloud(file["public_id"])
+            await delete_cloud_file(file["public_id"], "raw")
             await file_collection.update_one(
                 {"notebookId": notebookId},
                 {"$pull": {"file_list": {"public_id": file["public_id"]}}}
@@ -104,7 +104,7 @@ async def create_file_storage(notebookId: str):
 @router.delete("/delete/{notebookId}/{public_id}/{format}")
 async def delete_single_file(notebookId: str, public_id: str, format: str):
     if format != "url":
-        await delete_file_cloud(public_id)
+        await delete_cloud_file(public_id, "raw")
 
     result = await file_collection.update_one(
         {"notebookId": notebookId},

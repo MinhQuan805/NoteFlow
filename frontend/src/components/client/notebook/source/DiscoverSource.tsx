@@ -1,3 +1,5 @@
+// DiscoverSource.tsx
+
 'use client'
 
 // React & icon
@@ -22,6 +24,7 @@ import { useState } from "react"
 import { SingleFile } from "@/schemas/fileStorage.interface"
 import { useParams } from "next/navigation"
 import axios from "axios"
+import { toast } from "react-toastify";
 
 interface SingleLink {
     public_id: string
@@ -34,42 +37,7 @@ interface SingleLink {
     updated_at: Date | null
 }
 
-const MOCK_SOURCES: SingleLink[] = [
-  {
-    public_id: "1",
-    title: "Redux Essentials, Part 1: A Comprehensive Overview of Redux Concepts and Best Practices for Modern State Management in JavaScript Applications",
-    url: "https://redux.js.org/tutorials/essentials/part-1-overview-concepts",
-    description: "This official tutorial introduces Redux, providing an in-depth look at how to manage application state effectively. You will learn the core concepts such as actions, reducers, middleware, and how to integrate Redux with modern React applications using best practices and recommended tools.",
-    format: "url",
-    checked: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    public_id: "2",
-    title: "Understanding React Hooks: A Detailed Guide to Using useState, useEffect, and Custom Hooks in Complex React Projects",
-    url: "https://reactjs.org/docs/hooks-intro.html",
-    description: "Official React documentation explains hooks in detail, including useState, useEffect, and custom hooks. This guide explores advanced usage patterns, performance considerations, and tips for managing side effects in large-scale React applications.",
-    format: "url",
-    checked: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    public_id: "3",
-    title: "Next.js 13 App Router Tutorial: Building Full-Stack React Applications with Nested Layouts, Server Components, and API Routes",
-    url: "https://nextjs.org/docs/app/building-your-application",
-    description: "Step-by-step guide to using Next.js App Router, covering nested layouts, server components, dynamic routing, and API routes. Learn how to structure full-stack React applications efficiently while following Next.js conventions for performance and scalability.",
-    format: "url",
-    checked: true,
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-]
-
-
-
-export default function DiscoverSources(
+export default function DiscoverSource(
                           { onImportComplete }: { onImportComplete?: (files: SingleFile[]) => void }) {
   const [showResult, setShowResult] = useState(false);
   const [sources, setSources] = useState<SingleLink[]>([])
@@ -90,7 +58,6 @@ export default function DiscoverSources(
     try {
       const res = await axios.post("/api/search", { query })
       setSources(res.data)
-      // setSources(MOCK_SOURCES)
       setShowResult(true)
     } catch (error) {
       console.error("Discover failed:", error)
@@ -116,7 +83,7 @@ export default function DiscoverSources(
       const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_url/${params.notebookId}`, sourcesImport)
       if (onImportComplete) onImportComplete(sourcesImport)
     } catch (err) {
-      console.error("Import failed:", err)
+      toast.error("Import failed")
     } finally {
       resetImport()
     }
