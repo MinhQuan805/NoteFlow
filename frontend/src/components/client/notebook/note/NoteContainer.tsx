@@ -5,17 +5,17 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/shadcn-io/spinner';
-import NoteDialog from './NoteDialog';
 import ActionTrigger from '@/components/client/ActionTrigger';
 import { useNotes } from '@/hooks/useNotes';
 import { Note } from '@/schemas/note.interface';
 import { Block, } from "@blocknote/core";
-import { getNoteById } from '@/lib/noteApi';
+import { getNoteById } from '@/lib/api/noteApi';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import Image from "next/image";
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 
@@ -83,7 +83,7 @@ export default function NoteContainer({ initialNotes }: NoteContainerProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-center p-4 bg-white border-b border-gray-200">
+      <div className="flex justify-center p-4 bg-white border-b border-gray-200 rounded-t-xl">
         <Button
           className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-500 transition cursor-pointer"
           onClick={handleNewNote}
@@ -99,7 +99,11 @@ export default function NoteContainer({ initialNotes }: NoteContainerProps) {
             className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-100 transition"
             onClick={() => handleEdit(note)}
           >
-            <img src='/icon/format/note.png' alt="file icon" className="w-5 h-5"/>
+            <Image src="/icon/format/note.png" 
+              alt="file icon" 
+              width={20} height={20}
+              className="w-5 h-5"
+            />
             <span className="text-gray-700 text-base font-medium">{note.title ?? "Note"}</span>
             <div onClick={(e) => e.stopPropagation()}>
               <ActionTrigger

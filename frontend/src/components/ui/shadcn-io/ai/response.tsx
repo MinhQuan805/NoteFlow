@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/lib/actionApi';
+import { cn } from '@/lib/api/actionApi';
 import type { ComponentProps, HTMLAttributes } from 'react';
 import { isValidElement, memo } from 'react';
 import ReactMarkdown, { type Options } from 'react-markdown';

@@ -1,3 +1,4 @@
+// app/(client)/home/page.tsx
 "use client"
 
 import * as React from "react"
@@ -9,12 +10,12 @@ import { Notebook } from "@/schemas/notebook.interface"
 import { toast } from "react-toastify"
 import { useRouter } from "next/navigation"
 
+
 export default function Home() {
   
   const router = useRouter()
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
   const [loading, setLoading] = useState(true)
-
 
   useEffect(() => {
       const fetchData = async () => {
@@ -51,8 +52,7 @@ export default function Home() {
     try {
       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/${notebookId}`)
       router.push(`/notebook/${notebookId}/${res.data.conversationId}`)
-    } catch (err: any) {
-      console.error(err)
+    } catch {
       toast.error("Cannot open notebook. Please try again later.")
     } finally {
       setLoading(false)

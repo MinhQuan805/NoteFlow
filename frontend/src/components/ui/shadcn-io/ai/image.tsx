@@ -1,4 +1,4 @@
-import { cn } from '@/lib/actionApi';
+import { cn } from '@/lib/api/actionApi';
 import type { Experimental_GeneratedImage } from 'ai';
 
 export type ImageProps = Experimental_GeneratedImage & {

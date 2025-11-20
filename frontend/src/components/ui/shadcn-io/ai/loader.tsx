@@ -1,4 +1,4 @@
-import { cn } from '@/lib/actionApi';
+import { cn } from '@/lib/api/actionApi';
 import type { HTMLAttributes } from 'react';
 
 type LoaderIconProps = {

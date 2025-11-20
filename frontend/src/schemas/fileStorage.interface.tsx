@@ -3,6 +3,8 @@ export interface SingleFile {
     title: string
     url: string
     format: string
+    content?: string
+    embedding?: number[]
     checked: boolean
     created_at: Date | null
     updated_at: Date | null

@@ -8,6 +8,11 @@ export async function getAllConversations(notebookId: string) {
   return sendRequest<ConversationList[]>({
     url: `${process.env.NEXT_PUBLIC_API_URL}/conversations/getAll/${notebookId}`,
     method: "GET",
+    nextOption: {
+      next: {
+        tags: ['noteflow'],
+      },
+    }
   });
 }
 

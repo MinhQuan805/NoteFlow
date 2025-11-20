@@ -1,26 +1,18 @@
-import "./global.css"
-import "katex/dist/katex.min.css"
-import { ToastContainer, Bounce } from 'react-toastify';
+import "./global.css";
+import "katex/dist/katex.min.css";
+import ToastProvider from "@/components/providers/ToastProvider";
+import NProgressWrapper from "@/lib/wrapper/nprogress.wrapper";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {children}
-        <ToastContainer 
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick={false}
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          transition={Bounce}
-          />
+        <NProgressWrapper>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </NProgressWrapper>
       </body>
     </html>
-  )
+  );
 }

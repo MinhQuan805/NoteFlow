@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/actionApi';
+import { cn } from '@/lib/api/actionApi';
 import type { ComponentProps } from 'react';
 
 export type ActionsProps = ComponentProps<'div'>;

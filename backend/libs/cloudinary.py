@@ -49,6 +49,26 @@ async def upload_files(files: List[UploadFile]):
             detail=f"Error uploading files: {str(e)}"
         )
 
+async def upload_to_cloudinary(file: UploadFile):
+
+    try:
+        result = upload(
+            file.file,
+            folder="Note_Learning",
+            resource_type="raw"
+        )
+
+        return {
+            "public_id": result.get("public_id").split("/")[-1],
+            "url": result.get("secure_url"),
+            "format": file.filename.split(".")[-1].lower(),
+            "title": file.filename
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload Cloudinary Error: {str(e)}")
+
+
 async def upload_image(image: UploadFile):
     try:
         upload_result = upload(

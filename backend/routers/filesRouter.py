@@ -3,7 +3,8 @@ from schemas.fileSchema import SingleFile
 from config.database import db
 from datetime import datetime, timedelta, timezone
 from typing import List
-from libs.cloudinary import upload_files, delete_cloud_file
+from libs.cloudinary import delete_cloud_file
+from services.upload import upload_files
 from fastapi import Body
 
 file_collection = db["files"]
@@ -46,7 +47,8 @@ async def get_all_files(notebookId: str, background_tasks: BackgroundTasks):
     return sorted_files
 
 # Upload file
-@router.post("/upload_files/{notebookId}", response_model=List[SingleFile])
+
+@router.post("/upload_files/{notebookId}")
 async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
     try:
         uploaded_files = await upload_files(files)

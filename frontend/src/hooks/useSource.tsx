@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import * as fileApi from '@/lib/fileApi'
+import * as fileApi from '@/lib/api/fileApi'
 import { SingleFile } from '@/schemas/fileStorage.interface'
 
 export function useSource(initialFiles: SingleFile[], notebookId: string) {

@@ -11,6 +11,7 @@ import ActionTrigger from '@/components/client/ActionTrigger'
 import { useSource } from '@/hooks/useSource'
 import { useFileSelect } from '@/hooks/useFileSelect'
 import { SingleFile } from '@/schemas/fileStorage.interface'
+import Image from "next/image";
 import AddSource from './AddSource'
 
 const icons = [
@@ -73,7 +74,14 @@ export default function SourceFileUpload({ initialFiles }: { initialFiles: Singl
                       onDelete={() => deleteFile(file.public_id, file.format)}
                       id={`${params.notebookId}/${file.public_id}/${file.format}`}
                     />
-                  : <img src={icons.find(i => i.format === file.format)?.source || '/icon/format/other.png'} alt="file icon" className="w-5 h-5" />}
+                  : <Image
+                      src={icons.find(i => i.format === file.format)?.source || '/icon/format/other.png'}
+                      alt="file icon"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5"
+                    />
+                }
               </div>
               <span className="text-gray-700 text-sm truncate w-full">{file.title}</span>
             </div>

@@ -1,7 +1,7 @@
 // useNotes.tsx
 import { useState } from 'react';
 import { Note } from '@/schemas/note.interface';
-import * as noteApi from '@/lib/noteApi';
+import * as noteApi from '@/lib/api/noteApi';
 import { toast } from 'react-toastify';
 import { Block } from "@blocknote/core";
 

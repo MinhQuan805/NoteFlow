@@ -2,10 +2,10 @@
 
 import SourceFileUpload from '@/components/client/notebook/source/SourceFileUpload'
 import HistoryConversation from '@/components/client/notebook/HistoryConversation'
-import { getAllNotes } from '@/lib/noteApi'
+import { getAllNotes } from '@/lib/api/noteApi'
 import NoteContainer from '@/components/client/notebook/note/NoteContainer'
-import { getAllFiles } from '@/lib/fileApi'
-import { getAllConversations } from '@/lib/conversationApi'
+import { getAllFiles } from '@/lib/api/fileApi'
+import { getAllConversations } from '@/lib/api/conversationApi'
 
 
 export default async function NotebookLayout({
@@ -20,7 +20,6 @@ export default async function NotebookLayout({
   const notes = await getAllNotes(notebookId);
   const files = await getAllFiles(notebookId);
   const conversations = await getAllConversations(notebookId);
-
 
   return (
     <div className="h-screen">

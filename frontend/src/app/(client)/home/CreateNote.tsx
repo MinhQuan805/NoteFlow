@@ -35,11 +35,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
 import { toast } from "react-toastify"
-
+import { useState } from 'react';
 
 // Drawer component with trigger card and modal dialog
 export default function CreateNote() {
-  const [open, setOpen] = React.useState(false) // state to control dialog open/close
+  const [open, setOpen] = useState(false) // state to control dialog open/close
 
   // Trigger card for creating a new note
   const triggerCard = (
@@ -108,9 +108,8 @@ function NoteForm() {
   })
 
   // Handle form submission
-  const randomColor = ["#fecaca", "#fed7aa", "#fde68a", "#dbeafe", 
-                      "#fef08a", "#d9f99d", "#86efac", "#6ee7b7", 
-                      "#5eead4", "#7dd3fc", "#82f967"
+  const randomColor = ["#E1F1E5", "#EDEFFA", "#F0E9EF",
+                      "#F2F2E8", "#F7EDEB", "#DEF1F7"
                     ];
 
 
@@ -141,8 +140,7 @@ function NoteForm() {
       const resNote  = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/create`, data)
       toast.success("Notebook created successfully!")
       router.push(`/notebook/${resNote.data.notebookId}/${resNote.data.conversationId}`)
-    } catch (err: any) {
-      console.error(err)
+    } catch {
       toast.error("Cannot create notebook. Please try again later.")
     } finally {
       setLoading(false)

@@ -6,8 +6,10 @@ class SingleFile(BaseModel):
     public_id: Optional[str] = ''
     title: str
     url: str
-    checked: bool = True
     format: str
+    content: Optional[str] = None
+    embedding: Optional[List[float]] = None
+    checked: bool = True
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = None
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { ConversationList } from "@/schemas/conversation.interface";
-import * as conversationApi from "@/lib/conversationApi";
+import * as conversationApi from "@/lib/api/conversationApi";
 
 export function useConversation(initialConversations: ConversationList[], notebookId: string) {
   const [conversations, setConversations] = useState(initialConversations);

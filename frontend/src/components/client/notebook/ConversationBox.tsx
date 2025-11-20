@@ -40,7 +40,7 @@ import { toast } from 'react-toastify'
 
 // Interface
 import { MessageItem } from '@/schemas/conversation.interface'
-import { updateTitle } from '@/lib/actionApi';
+import { updateTitle } from '@/lib/api/actionApi';
 
 export default function ConversationBox() {
 
