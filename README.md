@@ -31,14 +31,27 @@
    npm install
    ```
 
-2. **Chạy ứng dụng**
+2.1 **Chạy ứng dụng phía developer**
 
+   Chạy dự án
    ```bash
    npm run dev
    ```
 
    > Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
 
----
 
-Bạn có muốn mình gom phần này thành file **README.md chuẩn** để bỏ vào repo cho dễ đọc không?
+2.2 **Chạy ứng dụng phía client**
+
+   Build Project
+   ```bash
+   npm run build
+   ```
+
+   Chạy dự án
+   ```bash
+   npm run build
+   ```
+
+   > Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+---
