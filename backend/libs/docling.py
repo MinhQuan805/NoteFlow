@@ -2,7 +2,7 @@ from docling.document_converter import DocumentConverter
 from sentence_transformers import SentenceTransformer
 from fastapi import UploadFile
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+# embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 async def create_file_embedding(file: UploadFile):
     source = "https://arxiv.org/pdf/2408.09869"
