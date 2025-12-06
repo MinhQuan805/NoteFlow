@@ -47,18 +47,17 @@ export default function ConversationBox() {
   const params = useParams<{notebookId: string; conversationId: string}>();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false)
-
+  const [loadingQuery, setLoadingQuery] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
 
   // State to store all messages of the conversation
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/chat',
-        // Include all chat messages + conversation ID for backend context
-        body: (messages: UIMessage[]) => ({
-          messages,
-          conversationId: params.conversationId,
-          
-        }),
+      // api: '/api/chat',
+        // // Include all chat messages + conversation ID for backend context
+        // body: (messages: UIMessage[]) => ({
+        //   messages,
+        //   conversationId: params.conversationId,
+        // }),
     }),
   });
 
@@ -114,18 +113,32 @@ export default function ConversationBox() {
 
     try {
       // Send the new message to API
-      const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL}/conversations/${params.conversationId}`,
-        newMessage,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      // const res = await axios.patch(
+      //   `${process.env.NEXT_PUBLIC_API_URL}/conversations/${params.conversationId}`,
+      //   newMessage,
+      //   { headers: { 'Content-Type': 'application/json' } }
+      // );
 
-      sendMessage({ text: text});
-      const updatedMessages = [...messages, newMessage];
+      // sendMessage({ text: text});
+      const updatedMessages = [...messages, newMessage as any];
+      setText('');
+      setMessages(updatedMessages);
       if (updatedMessages.length < 2) {
         await updateTitle(`conversations/update_title/${params.conversationId}?title=${text.slice(0, 35)}...`);
       }
-      setText('');
+      setLoadingQuery('submitted');
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/query/${params.conversationId}`,
+        {
+          message_item: newMessage,
+          query: text,
+          file_filters: [],
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      setLoadingQuery('ready');
+
+      setMessages([...updatedMessages, res.data.response_message]);
     } catch (err) {
       console.error('Error posting:', err);
       toast.error('Cannot connect to server, please try again.');
@@ -163,8 +176,9 @@ export default function ConversationBox() {
                 <Fragment key={`${message.id}-${i}`}>
                   <Message className="max-w-full" from={message.role}>
                     <MessageContent>
-                      {message.role === 'assistant' ?
+                      {message.role === 'assistant' ? (
                         <Response>{part.text}</Response>
+                      )
                         : (
                           <p className="whitespace-pre-wrap break-words">{part.text}</p>
                       )}
@@ -222,6 +236,11 @@ export default function ConversationBox() {
               {status === 'submitted' && <Loader />}
             </ConversationContent>
             <ConversationScrollButton/>
+            {loadingQuery === 'submitted' && (
+              <div className="flex justify-start ml-6">
+                <Spinner variant="ring" />
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </Conversation>
         )}
@@ -238,7 +257,7 @@ export default function ConversationBox() {
           />
 
           <PromptInputToolbar className='justify-end'>
-            <PromptInputSubmit className='rounded-4xl mr-1 mb-1 cursor-pointer' status={status} disabled={!text} />
+            <PromptInputSubmit className='rounded-4xl mr-1 mb-1 cursor-pointer' status={loadingQuery} disabled={!text} />
           </PromptInputToolbar>
         </PromptInput>
       </div>

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       ...item,
       public_id: uuidv4()
     }));
-
+    console.log("AI Search Results:", result);
     return NextResponse.json(result);
   } catch (err) {
     console.error(err);

@@ -4,10 +4,17 @@ from config.database import db
 from datetime import datetime, timedelta, timezone
 from typing import List
 from libs.cloudinary import delete_cloud_file
-from services.upload import upload_files
+from libs.cloudinary import upload_files
 from fastapi import Body
+import os
+import shutil
+from ai.rag_system import RAGSystem
 
+rag = RAGSystem("ai/config.yaml")
 file_collection = db["files"]
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router = APIRouter(
     prefix="/files",
@@ -51,19 +58,75 @@ async def get_all_files(notebookId: str, background_tasks: BackgroundTasks):
 @router.post("/upload_files/{notebookId}")
 async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
     try:
+        # Save physical files locally and collect their paths for ingestion
+        saved_paths = []
+        for file in files:
+            file.file.seek(0)
+            
+            file_path = os.path.join(UPLOAD_DIR, file.filename)
+
+            # Write file content to disk
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+                buffer.flush()
+                os.fsync(buffer.fileno())
+
+            saved_paths.append(file_path)
+
+        # Ingest the saved files into the RAG pipeline
+        rag.ingest(saved_paths)
+
+        for f in files:
+            f.file.seek(0)
+
+        # Upload files (store them in your storage system)
+        # This returns metadata for each uploaded file
         uploaded_files = await upload_files(files)
+
+        # Update database with uploaded file metadata
         now = datetime.now(timezone.utc)
         await file_collection.update_one(
             {"notebookId": notebookId},
             {
+                # Append the new files into the file_list array
                 "$push": {"file_list": {"$each": uploaded_files}},
+                # Update the timestamp
                 "$set": {"updated_at": now}
-            }
+            },
+            upsert=True  # Create the document if it doesn't exist
         )
-        return uploaded_files
+
+        # Return success response
+        return {
+            "message": f"Uploaded and ingested {len(saved_paths)} files successfully.",
+            "uploaded_files": uploaded_files,
+            "ingested_files": [os.path.basename(p) for p in saved_paths]
+        }
     except:
         raise HTTPException(status_code=400, detail="Upload File Error")
-    
+
+# @router.post("/ingest")
+# async def ingest_files(files: List[UploadFile] = File(...)):
+#     """
+#     Ingest uploaded PDF files.
+#     """
+#     saved_paths = []
+#     try:
+#         for file in files:
+#             file_path = os.path.join(UPLOAD_DIR, file.filename)
+#             with open(file_path, "wb") as buffer:
+#                 shutil.copyfileobj(file.file, buffer)
+#             saved_paths.append(file_path)
+        
+#         rag.ingest(saved_paths)
+        
+#         return {
+#             "message": f"Successfully ingested {len(saved_paths)} files.",
+#             "files": [os.path.basename(p) for p in saved_paths]
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
 # Upload source
 @router.post("/upload_url/{notebookId}")
 async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(...)):
@@ -85,7 +148,6 @@ async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(
         return newSources
     except:
         raise HTTPException(status_code=400, detail="Upload Url Error")
-
 
 # Create new file storage
 @router.post("/create/{notebookId}")

@@ -15,7 +15,7 @@ export async function getAllFiles(notebookId: string) {
 
 export const uploadFiles = async (notebookId: string, formData: FormData) => {
   const res = await axios.post(`${API_URL}/files/upload_files/${notebookId}`, formData)
-  return res.data as SingleFile[]
+  return res.data.uploaded_files as SingleFile[]
 }
 
 export const downloadFile = async (notebookId: string, public_id: string) => {
