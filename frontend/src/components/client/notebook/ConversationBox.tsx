@@ -42,22 +42,28 @@ import { toast } from 'react-toastify'
 import { MessageItem } from '@/schemas/conversation.interface'
 import { updateTitle } from '@/lib/api/actionApi';
 
+// Context for file filtering
+import { useFileContext } from '@/contexts/FileContext';
+
 export default function ConversationBox() {
 
-  const params = useParams<{notebookId: string; conversationId: string}>();
+  const params = useParams<{ notebookId: string; conversationId: string }>();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false)
   const [loadingQuery, setLoadingQuery] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
+
+  // Get file filter function from context
+  const { getCheckedFileFilters } = useFileContext();
 
   // State to store all messages of the conversation
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       // api: '/api/chat',
-        // // Include all chat messages + conversation ID for backend context
-        // body: (messages: UIMessage[]) => ({
-        //   messages,
-        //   conversationId: params.conversationId,
-        // }),
+      // // Include all chat messages + conversation ID for backend context
+      // body: (messages: UIMessage[]) => ({
+      //   messages,
+      //   conversationId: params.conversationId,
+      // }),
     }),
   });
 
@@ -72,7 +78,7 @@ export default function ConversationBox() {
           const conversationData = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${params.conversationId}`)
           setMessages(conversationData.data.messages)
         }
-      } 
+      }
       finally {
         setLoading(false)
       }
@@ -108,7 +114,7 @@ export default function ConversationBox() {
     const newMessage: MessageItem = {
       id: crypto.randomUUID(),
       role: "user",
-      parts: [{ type: "text", text: text}],
+      parts: [{ type: "text", text: text }],
     };
 
     try {
@@ -127,12 +133,17 @@ export default function ConversationBox() {
         await updateTitle(`conversations/update_title/${params.conversationId}?title=${text.slice(0, 35)}...`);
       }
       setLoadingQuery('submitted');
+
+      // Get checked file filters from context
+      const fileFilters = getCheckedFileFilters();
+      console.log('[ConversationBox] Sending query with file_filters:', fileFilters);
+
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/conversations/query/${params.conversationId}`,
         {
           message_item: newMessage,
           query: text,
-          file_filters: [],
+          file_filters: fileFilters.length > 0 ? fileFilters : null, // null = use all files
         },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -168,7 +179,7 @@ export default function ConversationBox() {
             ))}
           </Sources>
         )}
-        
+
         {message.parts.map((part, i) => {
           switch (part.type) {
             case 'text':
@@ -181,7 +192,7 @@ export default function ConversationBox() {
                       )
                         : (
                           <p className="whitespace-pre-wrap break-words">{part.text}</p>
-                      )}
+                        )}
                     </MessageContent>
                   </Message>
                   {message.role === 'assistant' && i === messages.length - 1 && (
@@ -227,7 +238,7 @@ export default function ConversationBox() {
       <div className="flex-1 overflow-y-auto px-4 py-6 pb-28">
         {loading ? (
           <div className="flex justify-center items-center h-full">
-            <Spinner variant="ring" key="ring"/>
+            <Spinner variant="ring" key="ring" />
           </div>
         ) : (
           <Conversation>
@@ -235,7 +246,7 @@ export default function ConversationBox() {
               {renderedMessages}
               {status === 'submitted' && <Loader />}
             </ConversationContent>
-            <ConversationScrollButton/>
+            <ConversationScrollButton />
             {loadingQuery === 'submitted' && (
               <div className="flex justify-start ml-6">
                 <Spinner variant="ring" />
@@ -246,7 +257,7 @@ export default function ConversationBox() {
         )}
       </div>
 
-        {/* Fixed prompt input at the bottom */}
+      {/* Fixed prompt input at the bottom */}
       <div className="p-2 border-t border-gray-200">
         <PromptInput onSubmit={handleSubmit} className="rounded-3xl">
           <PromptInputTextarea

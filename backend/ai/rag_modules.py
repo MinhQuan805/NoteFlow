@@ -13,7 +13,9 @@ from sentence_transformers import SentenceTransformer
 class IntentClassifier:
     def __init__(self):
         self.chit_chat_keywords = {kw.lower() for kw in ["hi", "hello", "hola", "hey", "hi there", "hello there", "hey there"]}
-        self.ml_model_path = "intent_router.pkl"
+        # Use absolute path relative to this module's directory
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        self.ml_model_path = os.path.join(module_dir, "intent_router.pkl")
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
         
         if os.path.exists(self.ml_model_path):

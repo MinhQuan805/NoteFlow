@@ -7,12 +7,10 @@ from bson.errors import InvalidId
 import uuid
 from typing import List
 from schemas.querySchema import QueryRequest, QueryResponse
-from ai.rag_system import RAGSystem
+from ai.rag_manager import RAGManager
 
-rag = RAGSystem("ai/config.yaml")
-
-conversation_collection = db["conversations"]
-notebook_collection = db["notebooks"]
+conversation_collection = "conversations"
+notebook_collection = "notebooks"
 
 router = APIRouter(
     prefix="/conversations",
@@ -32,11 +30,19 @@ async def query_rag(conversationId: str, request: QueryRequest):
         except InvalidId:
             raise HTTPException(status_code=400, detail="Invalid conversationId")
 
-        conversation = await conversation_collection.find_one({"_id": obj_id})
+        conversation = await db.find_one(conversation_collection, {"_id": obj_id})
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
-        await conversation_collection.update_one(
+        # Get notebookId to use correct RAG instance
+        notebookId = conversation.get("notebookId")
+        if not notebookId:
+             raise HTTPException(status_code=500, detail="Conversation missing notebookId")
+            
+        rag = RAGManager.get_rag(notebookId)
+
+        await db.update_one(
+            conversation_collection,
             {"_id": obj_id},
             {
                 "$push": {"messages": request.message_item.model_dump()},
@@ -48,8 +54,11 @@ async def query_rag(conversationId: str, request: QueryRequest):
         )
 
         intent = rag.intent_classifier.predict(request.query)
+        print(f"[DEBUG] Intent: {intent}")
+        print(f"[DEBUG] File filters: {request.file_filters}")
         
         response_text = rag.query(request.query, file_filters=request.file_filters)
+        print(f"[DEBUG] Response received: {response_text[:200] if response_text else 'None'}...")
         
         assistant_message = {
             "id": str(uuid.uuid4()),
@@ -62,7 +71,8 @@ async def query_rag(conversationId: str, request: QueryRequest):
             ]
         }
 
-        await conversation_collection.update_one(
+        await db.update_one(
+            conversation_collection,
             {"_id": obj_id},
             {
                 "$push": {"messages": assistant_message},
@@ -79,7 +89,18 @@ async def query_rag(conversationId: str, request: QueryRequest):
             "mode": "Hybrid/Full"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_msg = str(e)
+        print(f"[ERROR] Query failed: {error_msg}")
+        traceback.print_exc()
+        
+        # Return more specific error messages
+        if "429" in error_msg or "quota" in error_msg.lower() or "rate" in error_msg.lower():
+            raise HTTPException(status_code=429, detail=f"API rate limit exceeded: {error_msg}")
+        elif "404" in error_msg or "not found" in error_msg.lower():
+            raise HTTPException(status_code=404, detail=f"Model or resource not found: {error_msg}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Query error: {error_msg}")
 
 # Add 1 message into conversation
 @router.patch("/{conversationId}", response_model=dict)
@@ -93,7 +114,8 @@ async def update_conversation(
         raise HTTPException(status_code=400, detail="Invalid conversationId format")
 
     now = datetime.now(timezone.utc)
-    result = await conversation_collection.update_one(
+    result = await db.update_one(
+        conversation_collection,
         {"_id": obj_id},
         {
             "$push": {"messages": message_item.model_dump()},
@@ -113,10 +135,13 @@ async def update_conversation(
 @router.get("/getAll/{notebookId}", response_model=List[dict])
 async def get_all_conversation(notebookId: str):
     conversations = []
-    cursor = conversation_collection.find(
+    docs = await db.find(
+        conversation_collection,
         {"notebookId": notebookId, "deleted": {"$ne": True}},
-        {"messages": 0, "deleted": 0}).sort("updated_at", -1)
-    async for doc in cursor:
+        projection={"messages": 0, "deleted": 0},
+        sort=[("updated_at", -1)]
+    )
+    for doc in docs:
         conversations.append({
             "id": str(doc["_id"]),
             "title": doc["title"]
@@ -131,7 +156,7 @@ async def get_conversation(session_id: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
 
-    doc = await conversation_collection.find_one({"_id": obj_id})
+    doc = await db.find_one(conversation_collection, {"_id": obj_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -158,7 +183,7 @@ async def create_conversation(notebookId: str):
         "expireAt": now + timedelta(days=3)
     }
 
-    result = await conversation_collection.insert_one(new_conversation)
+    result = await db.insert_one(conversation_collection, new_conversation)
     conversationId = str(result.inserted_id)
     return {"conversationId": conversationId}
 
@@ -170,7 +195,8 @@ async def update_title(session_id: str, title: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid session_id format")
     
-    result = await conversation_collection.update_one(
+    result = await db.update_one(
+        conversation_collection,
         {"_id": session_obj_id},
         {
             "$set": {
@@ -193,7 +219,8 @@ async def delete_conversation(session_id: str):
         raise HTTPException(status_code=400, detail="Invalid session_id format")
 
     now = datetime.now(timezone.utc)
-    result = await conversation_collection.update_one(
+    result = await db.update_one(
+        conversation_collection,
         {"_id": obj_id},
         {
             "$set": {

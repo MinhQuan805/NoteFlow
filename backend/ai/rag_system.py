@@ -46,8 +46,9 @@ class Config:
         )
 
 class RAGSystem:
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config.yaml", notebook_id: str = None):
         self.config = Config.load(config_path)
+        self.notebook_id = notebook_id
         self._setup_environment()
         
         self.intent_classifier = IntentClassifier()
@@ -58,7 +59,15 @@ class RAGSystem:
             model_kwargs={'device': self.config.embedding_device}
         )
         
-        self.index_path = "faiss_index"
+        # Per-notebook data isolation
+        if notebook_id:
+            self.data_dir = os.path.join("data", notebook_id)
+        else:
+            self.data_dir = os.path.join("data", "default")
+            
+        os.makedirs(self.data_dir, exist_ok=True)
+        
+        self.index_path = os.path.join(self.data_dir, "faiss_index")
         self.vector_db_client = VectorDBClient(
             index_path=self.index_path,
             embedding_function=self.embeddings
@@ -84,7 +93,7 @@ class RAGSystem:
         
         self.total_tokens = 0
         self.all_documents = [] 
-        self.docs_path = "documents.pkl"
+        self.docs_path = os.path.join(self.data_dir, "documents.pkl")
         
         self._load_state()
         if self.all_documents:

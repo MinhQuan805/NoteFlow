@@ -7,7 +7,7 @@ from typing import List
 from config.database import db
 from schemas.noteSchema import Note, NoteContainer, UpdateNoteRequest
 
-note_collection = db["notes"]
+note_collection = "notes"
 
 router = APIRouter(
     prefix="/notes",
@@ -18,7 +18,7 @@ router = APIRouter(
 async def create_note(note: NoteContainer):
     new_note = note.model_dump()
 
-    result = await note_collection.insert_one(new_note)
+    result = await db.insert_one(note_collection, new_note)
     return {
         "id": str(result.inserted_id),
         "title": new_note["title"]
@@ -32,7 +32,8 @@ async def update_note_block(noteId: str, note: UpdateNoteRequest):
         raise HTTPException(status_code=400, detail="Invalid noteId format")
 
     note_data = [item.model_dump() for item in note.blocks]
-    result = await note_collection.update_one(
+    result = await db.update_one(
+        note_collection,
         {"_id": obj_id},
         {
             "$set": {
@@ -54,12 +55,14 @@ async def update_note_block(noteId: str, note: UpdateNoteRequest):
 @router.get("/getAll/{notebookId}", response_model=List[dict])
 async def get_all_notes(notebookId: str):
     notes = []
-    cursor = note_collection.find(
+    docs = await db.find(
+        note_collection,
         {"notebookId": notebookId},
-        {"blocks": 0, "created_at": 0}
-    ).sort("updated_at", -1)
+        projection={"blocks": 0, "created_at": 0},
+        sort=[("updated_at", -1)]
+    )
 
-    async for doc in cursor:
+    for doc in docs:
         notes.append({
             "id": str(doc["_id"]),
             "title": doc["title"]
@@ -73,7 +76,7 @@ async def get_note(noteId: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid note_id format")
 
-    doc = await note_collection.find_one({"_id": obj_id})
+    doc = await db.find_one(note_collection, {"_id": obj_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Note not found")
 
@@ -92,8 +95,8 @@ async def delete_note(noteId: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid noteId format")
 
-    result = await note_collection.delete_one({"_id": obj_id})
+    result = await db.delete_one(note_collection, {"_id": obj_id})
 
-    if result.deleted_count == 1:
+    if result.modified_count == 1:
         return {"status": True, "message": "Note permanently deleted"}
     raise HTTPException(status_code=404, detail="Note not found")

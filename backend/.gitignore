@@ -1,5 +1,40 @@
+# Virtual environment
 venv/
+.venv/
+
+# Environment variables (contains API keys!)
 .env
+
+# IDE
 .vscode/
+.idea/
+
+# Python cache
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# User uploads (generated at runtime)
+uploads/
+
+# RAG data (per-notebook indexes and pickles)
+data/
+
+# Local database (TinyDB files)
+db/
+
+# Legacy global RAG files
+faiss_index/
+documents.pkl
+
+# Vercel
 .vercel
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
