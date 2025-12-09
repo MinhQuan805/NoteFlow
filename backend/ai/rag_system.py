@@ -14,8 +14,12 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.storage import InMemoryStore
 from langchain.retrievers import ParentDocumentRetriever
 
-import ai.parser as parser
-from ai.rag_modules import IntentClassifier, LLMClient, VectorDBClient
+try:
+    import ai.parser as parser
+    from ai.rag_modules import IntentClassifier, LLMClient, VectorDBClient
+except ModuleNotFoundError:
+    import parser
+    from rag_modules import IntentClassifier, LLMClient, VectorDBClient
 
 @dataclass
 class Config:
