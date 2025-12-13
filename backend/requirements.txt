@@ -6,6 +6,7 @@ pydantic==2.11.9
 bcrypt==4.3.0
 cloudinary==1.44.1
 python-multipart==0.0.20
+beautifulsoup4==4.14.2
 aiohttp==3.12.15
 docling==2.61.2
 sentence-transformers==5.1.1

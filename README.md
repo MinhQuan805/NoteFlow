@@ -1,6 +1,6 @@
 ## 📂 Cấu trúc thư mục
 
-```
+````
 # 🚀 Cách chạy dự án
 
 ## 🔹 Backend (FastAPI)
@@ -9,7 +9,7 @@
 
    ```bash
    pip install -r requirements.txt
-   ```
+````
 
 2. **Chạy server**
 
@@ -33,25 +33,32 @@
 
 2.1 **Chạy ứng dụng phía developer**
 
-   Chạy dự án
-   ```bash
-   npm run dev
-   ```
+Chạy dự án
 
-   > Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+```bash
+npm run dev
+```
 
+> Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
 
 2.2 **Chạy ứng dụng phía client**
 
-   Build Project
-   ```bash
-   npm run build
-   ```
+Build Project
 
-   Chạy dự án
-   ```bash
-   npm run build
-   ```
+```bash
+npm run build
+```
 
-   > Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+Chạy dự án
+
+```bash
+npm run build
+```
+
+> Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+
 ---
+
+## Notes
+
+Links sent from the frontend that are invalid or cause errors will not be ingested, so they must be checked first

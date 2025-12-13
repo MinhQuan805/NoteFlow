@@ -10,7 +10,6 @@ import os
 import shutil
 from ai.rag_system import RAGSystem
 
-rag = RAGSystem("ai/config.yaml")
 file_collection = db["files"]
 
 UPLOAD_DIR = "uploads"
@@ -57,6 +56,7 @@ async def get_all_files(notebookId: str, background_tasks: BackgroundTasks):
 
 @router.post("/upload_files/{notebookId}")
 async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     try:
         # Save physical files locally and collect their paths for ingestion
         saved_paths = []
@@ -105,35 +105,33 @@ async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
     except:
         raise HTTPException(status_code=400, detail="Upload File Error")
 
-# @router.post("/ingest")
-# async def ingest_files(files: List[UploadFile] = File(...)):
-#     """
-#     Ingest uploaded PDF files.
-#     """
-#     saved_paths = []
-#     try:
-#         for file in files:
-#             file_path = os.path.join(UPLOAD_DIR, file.filename)
-#             with open(file_path, "wb") as buffer:
-#                 shutil.copyfileobj(file.file, buffer)
-#             saved_paths.append(file_path)
-        
-#         rag.ingest(saved_paths)
-        
-#         return {
-#             "message": f"Successfully ingested {len(saved_paths)} files.",
-#             "files": [os.path.basename(p) for p in saved_paths]
-#         }
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_web_content(url):
+    resp = requests.get(url, timeout=10)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    # Lấy text chính, loại bỏ script/style
+    for tag in soup(["script", "style"]):
+        tag.decompose()
+    return soup.get_text(separator="\n", strip=True)
 
 # Upload source
 @router.post("/upload_url/{notebookId}")
 async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(...)):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     try:
         now = datetime.now(timezone.utc)
         newSources = []
         for source in sources:
+            # Links sent from the frontend that are invalid or cause errors will not be ingested, so they must be checked first)
+            content = fetch_web_content(source.url)
+            temp_path = f"uploads/{source.public_id}.txt"
+            with open(temp_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            rag.ingest([temp_path])
+            os.remove(temp_path)
+
             source_dict = source.model_dump()
             source_dict["created_at"] = now
             source_dict["updated_at"] = now

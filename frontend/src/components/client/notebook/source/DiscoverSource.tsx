@@ -1,9 +1,9 @@
 // DiscoverSource.tsx
 
-'use client'
+"use client";
 
 // React & icon
-import { Search, X } from "lucide-react"
+import { Search, X } from "lucide-react";
 import { IoIosArrowBack } from "react-icons/io";
 
 // shadcn UI
@@ -14,81 +14,90 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-} from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { FaSearchPlus } from "react-icons/fa"
-import { useState } from "react"
-import { SingleFile } from "@/schemas/fileStorage.interface"
-import { useParams } from "next/navigation"
-import axios from "axios"
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { FaSearchPlus } from "react-icons/fa";
+import { useState } from "react";
+import { SingleFile } from "@/schemas/fileStorage.interface";
+import { useParams } from "next/navigation";
+import axios from "axios";
 import { toast } from "react-toastify";
 
 interface SingleLink {
-    public_id: string
-    title: string
-    url: string
-    format: string
-    checked: boolean
-    description: string
-    created_at: Date | null
-    updated_at: Date | null
+  public_id: string;
+  title: string;
+  url: string;
+  format: string;
+  checked: boolean;
+  description: string;
+  created_at: Date | null;
+  updated_at: Date | null;
 }
 
-export default function DiscoverSource(
-                          { onImportComplete }: { onImportComplete?: (files: SingleFile[]) => void }) {
+export default function DiscoverSource({
+  onImportComplete,
+}: {
+  onImportComplete?: (files: SingleFile[]) => void;
+}) {
   const [showResult, setShowResult] = useState(false);
-  const [sources, setSources] = useState<SingleLink[]>([])
-  const params = useParams<{ notebookId: string, conversationId: string }>()
-  const [query, setQuery] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [open, setOpen] = useState(false)
+  const [sources, setSources] = useState<SingleLink[]>([]);
+  const params = useParams<{ notebookId: string; conversationId: string }>();
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const resetImport = () => {
-    setShowResult(false)
-    setSources([])
-    setQuery("")
-    setOpen(false)
-  }
+    setShowResult(false);
+    setSources([]);
+    setQuery("");
+    setOpen(false);
+  };
   const handleDiscover = async () => {
-    if (!query.trim()) return
-    setLoading(true)
+    if (!query.trim()) return;
+    setLoading(true);
     try {
-      const res = await axios.post("/api/search", { query })
-      setSources(res.data)
-      setShowResult(true)
+      const res = await axios.post("/api/search", { query });
+      setSources(res.data);
+      setShowResult(true);
     } catch (error) {
-      console.error("Discover failed:", error)
+      console.error("Discover failed:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
   const handleToggleFile = (id: string) => {
     setSources((prev) =>
-      prev.map((f) => (f.public_id === id ? { ...f, checked: !f.checked } : f))
-    )
-  }
+      prev.map((f) => (f.public_id === id ? { ...f, checked: !f.checked } : f)),
+    );
+  };
 
   const handleSelectAll = () => {
-    const allChecked = sources.every((f) => f.checked)
-    setSources((prev) => prev.map((f) => ({ ...f, checked: !allChecked })))
-  }
+    const allChecked = sources.every((f) => f.checked);
+    setSources((prev) => prev.map((f) => ({ ...f, checked: !allChecked })));
+  };
 
   const handleImport = async () => {
-    const sourcesImport = sources.filter(f => f.checked)
-                                  .map(({ description, ...rest }) => rest); // Delete description before import to SingleFile
+    setLoading(true);
+    const sourcesImport = sources
+      .filter((f) => f.checked)
+      .map(({ description, ...rest }) => rest); // Delete description before import to SingleFile
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/files/upload_url/${params.notebookId}`, sourcesImport)
-      if (onImportComplete) onImportComplete(sourcesImport)
-    } catch (err) {
-      toast.error("Import failed")
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/files/upload_url/${params.notebookId}`,
+        sourcesImport,
+      );
+      if (onImportComplete) onImportComplete(sourcesImport);
+    } catch {
+      toast.error("Import failed");
     } finally {
-      resetImport()
+      resetImport();
+      setLoading(false);
     }
-  }
-  const selectedCount = sources.filter((f) => f.checked).length
+  };
+  const selectedCount = sources.filter((f) => f.checked).length;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -96,21 +105,26 @@ export default function DiscoverSource(
         <Button
           variant="outline"
           onClick={() => setOpen(true)}
-          className="w-full h-10 flex items-center justify-center gap-1 rounded-3xl cursor-pointer border border-gray-300 hover:bg-gray-100"
+          className="flex h-10 w-full cursor-pointer items-center justify-center gap-1 rounded-3xl border border-gray-300 hover:bg-gray-100"
         >
           <Search size={16} /> Discover
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[700px] rounded-2xl" showCloseButton={false}>
+      <DialogContent
+        className="rounded-2xl sm:max-w-[700px]"
+        showCloseButton={false}
+      >
         <div className="flex items-center justify-between">
           {showResult && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => { setShowResult(false); setQuery("") }}
-              className="flex justify-center opacity-70 w-7 h-7 cursor-pointer
-                        rounded-full hover:bg-gray-200 focus:outline-none focus:ring-0"
+              onClick={() => {
+                setShowResult(false);
+                setQuery("");
+              }}
+              className="flex h-7 w-7 cursor-pointer justify-center rounded-full opacity-70 hover:bg-gray-200 focus:outline-none focus:ring-0"
             >
               <IoIosArrowBack className="h-2 w-2" />
             </Button>
@@ -123,8 +137,7 @@ export default function DiscoverSource(
               variant="ghost"
               size="icon"
               onClick={resetImport}
-              className="opacity-70 w-7 h-7 cursor-pointer
-                        rounded-full hover:bg-gray-200 focus:outline-none focus:ring-0"
+              className="h-7 w-7 cursor-pointer rounded-full opacity-70 hover:bg-gray-200 focus:outline-none focus:ring-0"
             >
               <X className="h-2 w-2" />
             </Button>
@@ -133,12 +146,12 @@ export default function DiscoverSource(
 
         {/* Step 1: Enter your topic */}
         {!showResult ? (
-          <div className="space-y-4 mt-2">
+          <div className="mt-2 space-y-4">
             <div className="flex flex-col items-center">
-              <div className="flex justify-center items-center bg-blue-100 mt-2 mb-2 w-12 h-12 rounded-full">
-                <FaSearchPlus className="text-sky-600 w-5 h-5" />
+              <div className="mb-2 mt-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                <FaSearchPlus className="h-5 w-5 text-sky-600" />
               </div>
-              <Label className="font-medium text-center text-lg mb-2">
+              <Label className="mb-2 text-center text-lg font-medium">
                 What are you interested in?
               </Label>
             </div>
@@ -152,7 +165,7 @@ export default function DiscoverSource(
 
             <div className="flex justify-end">
               <Button
-                className="rounded-full cursor-pointer px-5"
+                className="cursor-pointer rounded-full px-5"
                 onClick={handleDiscover}
                 disabled={loading}
               >
@@ -163,9 +176,8 @@ export default function DiscoverSource(
         ) : (
           /* Step 2: Display result */
           <div className="mt-3">
-
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              <div className="flex justify-between items-center mb-2 max-h-[400px] px-3 py-2">
+            <div className="max-h-[400px] space-y-3 overflow-y-auto pr-2">
+              <div className="mb-2 flex max-h-[400px] items-center justify-between px-3 py-2">
                 <Label className="font-medium">Select all sources</Label>
                 <Checkbox
                   checked={sources.every((f) => f.checked)}
@@ -176,19 +188,20 @@ export default function DiscoverSource(
               {sources.map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between border 
-                            rounded-xl px-3 py-2 hover:bg-gray-50 transition w-full"
+                  className="flex w-full items-center justify-between rounded-xl border px-3 py-2 transition hover:bg-gray-50"
                 >
-                  <div className="flex flex-col w-[80%]">
+                  <div className="flex w-[80%] flex-col">
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-blue-600 hover:underline max-w-full line-clamp-1"
+                      className="line-clamp-1 max-w-full text-sm font-medium text-blue-600 hover:underline"
                     >
                       {item.title}
                     </a>
-                    <p className="text-xs text-gray-600 max-w-full line-clamp-1">{item.description}</p>
+                    <p className="line-clamp-1 max-w-full text-xs text-gray-600">
+                      {item.description}
+                    </p>
                   </div>
                   <Checkbox
                     checked={item.checked}
@@ -199,15 +212,21 @@ export default function DiscoverSource(
               ))}
             </div>
 
-            <div className="flex justify-between items-center mt-4 border-t pt-3">
+            <div className="mt-4 flex items-center justify-between border-t pt-3">
               <p className="text-sm text-gray-600">
                 Selected {selectedCount} sources
               </p>
-              <Button className="rounded-full px-5 cursor-pointer" onClick={handleImport}>Import</Button>
+              <Button
+                className="cursor-pointer rounded-full px-5"
+                onClick={handleImport}
+                disabled={loading}
+              >
+                {loading ? "Importing..." : "Import"}
+              </Button>
             </div>
           </div>
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -9,7 +9,6 @@ from typing import List
 from schemas.querySchema import QueryRequest, QueryResponse
 from ai.rag_system import RAGSystem
 
-rag = RAGSystem("ai/config.yaml")
 
 conversation_collection = db["conversations"]
 notebook_collection = db["notebooks"]
@@ -19,8 +18,9 @@ router = APIRouter(
     tags=["conversations"]
 )
 
-@router.post("/query/{conversationId}", response_model=QueryResponse)
-async def query_rag(conversationId: str, request: QueryRequest):
+@router.post("/query/{notebookId}/{conversationId}", response_model=QueryResponse)
+async def query_rag(notebookId: str, conversationId: str, request: QueryRequest):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     """
     Query the RAG system.
     """
