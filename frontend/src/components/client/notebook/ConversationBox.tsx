@@ -42,7 +42,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner/index";
 
 // Icon
-import { CopyIcon, Loader, RefreshCcwIcon } from "lucide-react";
+import { CopyIcon, Loader, RefreshCcwIcon, Presentation } from "lucide-react";
 
 // Packages
 import axios from "axios";
@@ -52,6 +52,9 @@ import { toast } from "react-toastify";
 // Interface
 import { MessageItem } from "@/schemas/conversation.interface";
 import { updateTitle } from "@/lib/api/actionApi";
+import SlidesViewer from "./note/SlidesViewer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function ConversationBox() {
   const params = useParams<{ notebookId: string; conversationId: string }>();
@@ -60,6 +63,8 @@ export default function ConversationBox() {
   const [loadingQuery, setLoadingQuery] = useState<
     "submitted" | "streaming" | "ready" | "error"
   >("ready");
+  const [viewSlideHtml, setViewSlideHtml] = useState<string | null>(null);
+  const [isSlideViewerOpen, setIsSlideViewerOpen] = useState(false);
 
   // State to store all messages of the conversation
   const { messages, sendMessage, status, setMessages } = useChat({
@@ -160,8 +165,13 @@ export default function ConversationBox() {
     }
   };
 
+  const handleViewSlide = (htmlContent: string) => {
+    setViewSlideHtml(htmlContent);
+    setIsSlideViewerOpen(true);
+  };
+
   const renderedMessages = useMemo(() => {
-    return messages.map((message) => (
+    return (messages as MessageItem[]).map((message) => (
       <div key={message.id}>
         {message.role === "assistant" &&
           message.parts.filter((part) => part.type === "source-url").length >
@@ -219,6 +229,29 @@ export default function ConversationBox() {
                         </Action>
                       </Actions>
                     )}
+                </Fragment>
+              );
+            case "slides":
+              return (
+                <Fragment key={`${message.id}-${i}`}>
+                  <div className="max-w-full mb-4">
+                    <div className="border rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Presentation className="h-5 w-5 text-red-600" />
+                        <h3 className="font-semibold text-gray-800">Presentation Slides Generated</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Your slides are ready to view!
+                      </p>
+                      <Button
+                        onClick={() => handleViewSlide(part.text)}
+                        className="bg-red-400 hover:bg-red-600 text-white rounded-full"
+                      >
+                        <Presentation className="h-4 w-4 mr-2" />
+                        View Slides
+                      </Button>
+                    </div>
+                  </div>
                 </Fragment>
               );
             case "reasoning":
@@ -287,6 +320,18 @@ export default function ConversationBox() {
           </PromptInputToolbar>
         </PromptInput>
       </div>
+
+      {/* Slides Viewer Dialog */}
+      <Dialog open={isSlideViewerOpen} onOpenChange={setIsSlideViewerOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0" showCloseButton={false}>
+          {viewSlideHtml && (
+            <SlidesViewer
+              htmlContent={viewSlideHtml}
+              onClose={() => setIsSlideViewerOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
