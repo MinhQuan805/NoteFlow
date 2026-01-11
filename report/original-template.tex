@@ -1,0 +1,118 @@
+\documentclass[12pt,a4paper]{article}
+
+% Gói hỗ trợ tiếng Việt
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+% Gói cơ bản
+\usepackage{graphicx} % Chèn hình ảnh
+\usepackage{tabularx} % Bảng linh hoạt
+\usepackage[top=2cm, bottom=1.5cm, left=2.5cm, right=2cm]{geometry} % Lề trang
+\usepackage{fancyhdr} % Header và footer
+\usepackage{tocloft} % Tùy chỉnh mục lục
+\usepackage[numbers,sort&compress]{natbib} % Quản lý tài liệu tham khảo
+
+% Thiết lập header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\raisebox{-0.2\height}{\includegraphics[height=10pt]{uit.png}} \fontsize{8pt}{10pt} \selectfont Kĩ thuật lập trình Trí tuệ nhân tạo}
+\fancyfoot[L]{\fontsize{9pt}{11pt} \selectfont Hệ thống quản lý và truy xuất tri thức từ tài liệu cá nhân}
+\fancyfoot[R]{\fontsize{9pt}{11pt} \selectfont \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\begin{document}
+
+%Định dạng tên trường đại học và khoa
+\begin{titlepage}
+\begin{center}
+{\fontsize{14pt}{16pt} \selectfont \textbf{\MakeUppercase{ĐẠI HỌC QUỐC GIA THÀNH PHỐ HỒ CHÍ MINH
+\vspace{2mm} \\ TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN
+\vspace{3mm} \\ Khoa Khoa học Máy tính}}}
+\end{center}
+
+%Định dạng logo trường cho project
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=6.5cm]{uit.png}
+\end{center}
+\end{figure}
+
+%Định dạng các yếu tố của project như: course's name, course ID, project report, topic
+\begin{center}
+{\textbf{\fontsize{14pt}{16pt} \selectfont ARTIFICIAL INTELLIGENCE PROGRAMMING TECHNIQUES}}
+\vspace{4mm}
+
+\rule{\textwidth}{0.4pt}
+\vspace{4mm}
+
+{\textbf{\fontsize{14pt}{16pt} \selectfont BÁO CÁO ĐỒ ÁN MÔN HỌC}}
+\vspace{3mm}
+
+{\textbf{\fontsize{22pt}{26pt} \selectfont Hệ thống quản lý và truy xuất tri thức \\ từ tài liệu cá nhân}}
+\vspace{4mm}
+
+\rule{\textwidth}{0.4pt}
+\end{center}
+
+%Định dạng tên giảng viên đại học
+\vspace{6mm}
+\begin{center}
+{\fontsize{12pt}{12pt} \selectfont \textbf{\begin{tabular}{rl}
+Giáo viên hướng dẫn: & TS. Đặng Văn Thìn \\
+& ThS. Đỗ Văn Tiến \\
+[3mm]
+Lớp: & CS311.Q11
+\end{tabular}}}
+\end{center}
+\vspace{3mm}
+
+
+%Định dạng bảng sinh viên đóng góp trong bài tập lớn
+\begin{center}
+\begin{tabular}{clcc}
+\textbf{\fontsize{12pt}{14pt} \selectfont STT} & \textbf{\fontsize{12pt}{14pt} \selectfont Họ tên Sinh viên} & \textbf{\fontsize{12pt}{14pt} \selectfont Mã số sinh viên} \\
+[2mm]
+{\fontsize{12pt}{14pt} \selectfont 1} & {\fontsize{12pt}{14pt} \selectfont Nguyễn Quốc Khánh} & {\fontsize{12pt}{14pt} \selectfont 24520793} \\
+[2mm]
+{\fontsize{12pt}{14pt} \selectfont 2} & {\fontsize{12pt}{14pt} \selectfont Võ Minh Quân} & {\fontsize{12pt}{14pt} \selectfont 24521459} \\
+[2mm]
+\end{tabular}
+\end{center}
+
+%Định dạng ngày và địa điểm
+\vfill
+\setlength{\footskip}{2cm}
+\begin{center}
+{\fontsize{10pt}{12pt} \selectfont \textit{Thành phố Hồ Chí Minh, 1/2026}}
+\end{center}
+\end{titlepage}
+
+%Tạo trang mới dành riêng cho TOC, không đánh số trang
+\pagenumbering{gobble}
+\tocloftpagestyle{fancy}
+\newpage
+\fancyfoot[R]{}
+\tableofcontents
+
+%Tạo trang mới kể từ trang nội dung, đánh số trang
+\newpage
+\fancyfoot[R]{\fontsize{8pt}{10pt} \selectfont Page {\thepage}}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% Thêm nội dung các chương ở đây (nếu có)
+% \input{chapter1.tex}
+% \input{chapter2.tex}
+% \input{chapter3.tex}
+
+% Test citation để kiểm tra định dạng
+\section{Giới thiệu}
+Bài báo cáo này về hệ thống RAG \cite{foret2021sharpnessaware}.
+
+% Tài liệu tham khảo
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
