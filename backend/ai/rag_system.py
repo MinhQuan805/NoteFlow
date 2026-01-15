@@ -235,6 +235,49 @@ class RAGSystem:
             print("Mode: RAG (Hybrid)")
             return self._query_rag(user_query, file_filters)
 
+    def query_with_context(self, user_query: str, file_filters: List[str] = None) -> Tuple[str, List[str]]:
+        """
+        Query the RAG system and return both the answer and the retrieved contexts.
+        Useful for benchmarking/evaluation.
+        """
+        if not self.ensemble_retriever:
+            return "Error: No documents indexed.", []
+            
+        docs = self.ensemble_retriever.invoke(user_query)
+        
+        if file_filters:
+            filtered_docs = []
+            for doc in docs:
+                source = doc.metadata.get("source", "")
+                if any(f in source for f in file_filters):
+                    filtered_docs.append(doc)
+            docs = filtered_docs
+            
+        if not docs:
+            return "No relevant documents found in the selected files.", []
+        
+        # Extract context strings for Ragas evaluation
+        contexts_list = [doc.page_content for doc in docs]
+        
+        context_str = ""
+        for doc in docs:
+            source = os.path.basename(doc.metadata.get("source", "unknown"))
+            page = doc.metadata.get("page", "unknown")
+            context_str += f"--- Source: {source}, Page: {page} ---\n{doc.page_content}\n\n"
+        
+        prompt = f"""
+        You are a helpful assistant. Answer the user's question based on the following retrieved context.
+        Always cite your sources using the format [Source: filename, Page: number].
+        
+        Context:
+        {context_str}
+        
+        Question: {user_query}
+        """
+        
+        response = self.llm_client.invoke(prompt)
+        return response.content, contexts_list
+
     def _get_filtered_docs(self, file_filters: List[str]) -> List[Document]:
         filtered = []
         for doc in self.all_documents:
