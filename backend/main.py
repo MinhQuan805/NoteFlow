@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from routers import (conversationsRouter as conversations, 
                     filesRouter as files, 
                     notebookRouter as notebooks,
-                    noteRouter as notes
+                    noteRouter as notes,
+                    slidesRouter as slides
                     )
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -35,6 +36,7 @@ app.include_router(conversations.router, tags=["conversations"])
 app.include_router(files.router, tags=["files"])
 app.include_router(notebooks.router, tags=["notebooks"])
 app.include_router(notes.router, tags=["notes"])
+app.include_router(slides.router, tags=["slides"])
 
 
 if __name__ == "__main__":

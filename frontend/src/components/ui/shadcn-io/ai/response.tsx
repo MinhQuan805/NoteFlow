@@ -153,6 +153,59 @@ function parseIncompleteMarkdown(text: string): string {
     }
   }
 
+  // Handle incomplete math notation ($ and $$)
+  // Check for display math ($$) first
+  const displayMathCount = (result.match(/\$\$/g) || []).length;
+  if (displayMathCount % 2 === 1) {
+    // Odd number of $$ means incomplete display math - complete it
+    result = `${result}$$`;
+  } else {
+    // If display math is complete, check inline math ($)
+    // Count single $ that are not part of $$
+    let singleDollarCount = 0;
+    for (let i = 0; i < result.length; i++) {
+      if (result[i] === '$') {
+        // Check if this $ is part of a $$ sequence
+        const isDisplayMathStart = result.substring(i, i + 2) === '$$';
+        const isDisplayMathEnd = i > 0 && result.substring(i - 1, i + 1) === '$$';
+
+        if (!(isDisplayMathStart || isDisplayMathEnd)) {
+          singleDollarCount++;
+        } else if (isDisplayMathStart) {
+          // Skip the next $ as it's part of $$
+          i++;
+        }
+      }
+    }
+
+    // If odd number of single $, we have incomplete inline math - complete it
+    if (singleDollarCount % 2 === 1) {
+      result = `${result}$`;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Convert LaTeX delimiters to KaTeX-compatible format
+ * \[ ... \] → $$ ... $$ (display math)
+ * \( ... \) → $ ... $ (inline math)
+ */
+function preprocessMath(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text;
+  }
+
+  let result = text;
+
+  // Convert \[ ... \] to $$ ... $$
+  // Using function to avoid dollar sign escaping issues
+  result = result.replace(/\\\[([\s\S]*?)\\\]/g, (match, content) => `$$${content}$$`);
+
+  // Convert \( ... \) to $ ... $
+  result = result.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => `$${content}$`);
+
   return result;
 }
 
@@ -359,10 +412,17 @@ export const Response = memo(
     ...props
   }: ResponseProps) => {
     // Parse the children to remove incomplete markdown tokens if enabled
-    const parsedChildren =
-      typeof children === 'string' && shouldParseIncompleteMarkdown
-        ? parseIncompleteMarkdown(children)
-        : children;
+    let parsedChildren = children;
+
+    if (typeof children === 'string') {
+      // First convert LaTeX delimiters to KaTeX format
+      parsedChildren = preprocessMath(children);
+
+      // Then handle incomplete markdown during streaming
+      if (shouldParseIncompleteMarkdown) {
+        parsedChildren = parseIncompleteMarkdown(parsedChildren);
+      }
+    }
 
     return (
       <div

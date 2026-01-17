@@ -115,28 +115,90 @@ async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Upload File Error: {str(e)}")
 
+# Sync web content fetcher (proven approach from main_branch)
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_web_content(url: str) -> str:
+    """Fetch and extract text content from a URL"""
+    try:
+        resp = requests.get(url, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+        return soup.get_text(separator="\n", strip=True)
+    except Exception as e:
+        print(f"[Discover] Failed to fetch {url}: {e}")
+        return ""
+
 # Upload source URL
 @router.post("/upload_url/{notebookId}")
 async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(...)):
     try:
+        # Get per-notebook RAG instance
+        rag = RAGManager.get_rag(notebookId)
+        
         now = datetime.now(timezone.utc)
         newSources = []
+        ingested_count = 0
+        
         for source in sources:
-            source_dict = source.model_dump()
-            source_dict["created_at"] = now
-            source_dict["updated_at"] = now
-            newSources.append(source_dict)
-        await db.update_one(
-            file_collection,
-            {"notebookId": notebookId},
-            {
-                "$push": {"file_list": {"$each": newSources}},
-                "$set": {"updated_at": now}
-            }
-        )
-        return newSources
-    except:
-        raise HTTPException(status_code=400, detail="Upload Url Error")
+            try:
+                # Fetch web content
+                print(f"[Discover] Fetching: {source.url}")
+                content = fetch_web_content(source.url)
+                
+                if content:
+                    # Save to temp file for ingestion
+                    temp_path = os.path.join(UPLOAD_DIR, f"{source.public_id}.txt")
+                    with open(temp_path, "w", encoding="utf-8") as f:
+                        f.write(f"Source: {source.title}\nURL: {source.url}\n\n{content}")
+                    
+                    # Ingest into RAG with title as source name (for filtering)
+                    rag.ingest([temp_path], source_names={temp_path: source.title})
+                    ingested_count += 1
+                    print(f"[Discover] Ingested: {source.title} ({len(content)} chars)")
+                    
+                    # Clean up temp file
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+                    
+                    # Only add to database if successfully ingested
+                    source_dict = source.model_dump()
+                    source_dict["created_at"] = now
+                    source_dict["updated_at"] = now
+                    newSources.append(source_dict)
+                else:
+                    print(f"[Discover] No content for: {source.title} - skipping from source list")
+                
+            except Exception as e:
+                print(f"[Discover] Error processing {source.title}: {e} - skipping from source list")
+                continue
+        
+        # Update database
+        if newSources:
+            await db.update_one(
+                file_collection,
+                {"notebookId": notebookId},
+                {
+                    "$push": {"file_list": {"$each": newSources}},
+                    "$set": {"updated_at": now}
+                }
+            )
+        
+        return {
+            "message": f"Uploaded {len(newSources)} sources, ingested {ingested_count} into RAG",
+            "sources": newSources
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Upload Url Error: {str(e)}")
 
 # Create new file storage
 @router.post("/create/{notebookId}")

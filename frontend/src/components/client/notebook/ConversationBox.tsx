@@ -31,7 +31,7 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ui/s
 import { Spinner } from '@/components/ui/shadcn-io/spinner/index';
 
 // Icon
-import { CopyIcon, Loader, RefreshCcwIcon } from 'lucide-react';
+import { CopyIcon, Loader, RefreshCcwIcon, Presentation } from 'lucide-react';
 
 // Packages
 import axios from 'axios';
@@ -42,6 +42,11 @@ import { toast } from 'react-toastify'
 import { MessageItem } from '@/schemas/conversation.interface'
 import { updateTitle } from '@/lib/api/actionApi';
 
+// Slide components
+import SlidesViewer from './note/SlidesViewer';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
 // Context for file filtering
 import { useFileContext } from '@/contexts/FileContext';
 
@@ -51,6 +56,8 @@ export default function ConversationBox() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false)
   const [loadingQuery, setLoadingQuery] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
+  const [viewSlideHtml, setViewSlideHtml] = useState<string | null>(null);
+  const [isSlideViewerOpen, setIsSlideViewerOpen] = useState(false);
 
   // Get file filter function from context
   const { getCheckedFileFilters } = useFileContext();
@@ -156,6 +163,60 @@ export default function ConversationBox() {
     }
   };
 
+  const handleViewSlide = (htmlContent: string) => {
+    setViewSlideHtml(htmlContent);
+    setIsSlideViewerOpen(true);
+  };
+
+  // Handle generate slides button click
+  const handleGenerateSlides = async () => {
+    // Use text if provided, otherwise use default prompt based on selected sources
+    const fileFilters = getCheckedFileFilters();
+
+    // Hard limit: exactly 1 document for slide generation
+    if (fileFilters.length > 1) {
+      toast.error('Please select exactly 1 document for slide generation');
+      return;
+    }
+
+    const defaultTopic = fileFilters.length > 0
+      ? `Create presentation slides from: ${fileFilters.join(', ')}`
+      : 'Create presentation slides from the available documents';
+
+    const topic = text.trim() ? text : defaultTopic;
+
+    const newMessage: MessageItem = {
+      id: crypto.randomUUID(),
+      role: "user",
+      parts: [{ type: "text", text: topic }],
+    };
+
+    try {
+      const updatedMessages = [...messages, newMessage as any];
+      setText('');
+      setMessages(updatedMessages);
+      setLoadingQuery('submitted');
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/generate_slides/${params.conversationId}`,
+        {
+          message_item: newMessage,
+          query: topic,
+          file_filters: fileFilters.length > 0 ? fileFilters : null,
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      setLoadingQuery('ready');
+
+      setMessages([...updatedMessages, res.data.response_message]);
+      toast.success('Slides generated successfully!');
+    } catch (err) {
+      console.error('Error generating slides:', err);
+      setLoadingQuery('ready');
+      toast.error('Failed to generate slides. Please try again.');
+    }
+  };
+
   const renderedMessages = useMemo(() => {
     return messages.map((message) => (
       <div key={message.id}>
@@ -214,6 +275,29 @@ export default function ConversationBox() {
                   )}
                 </Fragment>
               );
+            case 'slides':
+              return (
+                <Fragment key={`${message.id}-${i}`}>
+                  <div className="max-w-full mb-4">
+                    <div className="border rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Presentation className="h-5 w-5 text-red-600" />
+                        <h3 className="font-semibold text-gray-800">Presentation Slides Generated</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Your slides are ready to view!
+                      </p>
+                      <Button
+                        onClick={() => handleViewSlide(part.text)}
+                        className="bg-red-400 hover:bg-red-600 text-white rounded-full"
+                      >
+                        <Presentation className="h-4 w-4 mr-2" />
+                        View Slides
+                      </Button>
+                    </div>
+                  </div>
+                </Fragment>
+              );
             case 'reasoning':
               return (
                 <Reasoning
@@ -267,11 +351,34 @@ export default function ConversationBox() {
             placeholder="Ask me anything..."
           />
 
-          <PromptInputToolbar className='justify-end'>
+          <PromptInputToolbar className='justify-end gap-2'>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleGenerateSlides}
+              disabled={loadingQuery === 'submitted' || getCheckedFileFilters().length > 1}
+              className="rounded-full cursor-pointer h-8 w-8"
+              title={getCheckedFileFilters().length > 1 ? 'Select only 1 document for slides' : 'Generate Slides'}
+            >
+              <Presentation className="h-4 w-4" />
+            </Button>
             <PromptInputSubmit className='rounded-4xl mr-1 mb-1 cursor-pointer' status={loadingQuery} disabled={!text} />
           </PromptInputToolbar>
         </PromptInput>
       </div>
+
+      {/* Slides Viewer Dialog */}
+      <Dialog open={isSlideViewerOpen} onOpenChange={setIsSlideViewerOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0" showCloseButton={false}>
+          {viewSlideHtml && (
+            <SlidesViewer
+              htmlContent={viewSlideHtml}
+              onClose={() => setIsSlideViewerOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

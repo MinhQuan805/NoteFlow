@@ -20,6 +20,30 @@ def estimate_tokens_locally(parsed_json_data):
     return int(estimated_count), all_text
 
 def parse_single_path(path):
+    # For text files, read directly without using LlamaParse API
+    ext = os.path.splitext(path)[1].lower()
+    if ext in ['.txt', '.md', '.text']:
+        print(f"Reading text file directly: {path}")
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            # Create a simple result structure matching LlamaParse output
+            class SimplePage:
+                def __init__(self, text):
+                    self.text = text
+            class SimpleResult:
+                def __init__(self, pages):
+                    self.pages = pages
+            
+            result = SimpleResult([SimplePage(content)])
+            estimated_tokens = int(len(content) / 3.6)
+            print(f"Finished reading: {path} ({len(content)} chars, ~{estimated_tokens} tokens)")
+            return result, estimated_tokens, content
+        except Exception as e:
+            print(f"Error reading text file {path}: {e}")
+            raise
+    
+    # For other files (PDF, etc.), use LlamaParse
     api_key = os.environ.get("LLAMA_PARSE_API_KEY") 
     
     if not api_key:

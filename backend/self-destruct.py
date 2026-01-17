@@ -22,6 +22,9 @@ CLEANUP_TARGETS = [
     # Local TinyDB database files
     "db",
     
+    # Debug outputs (LLM responses for troubleshooting)
+    "debug",
+    
     # Legacy/global RAG files (if any)
     "faiss_index",
     "documents.pkl",

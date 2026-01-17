@@ -18,6 +18,13 @@ class LocalBackend(DatabaseInterface):
             path = os.path.join(self.db_dir, f"{collection}.json")
             self._dbs[collection] = TinyDB(path, storage=CachingMiddleware(JSONStorage))
         return self._dbs[collection]
+    
+    def _flush(self, collection: str):
+        """Flush the caching middleware to persist data to disk immediately"""
+        if collection in self._dbs:
+            storage = self._dbs[collection].storage
+            if hasattr(storage, 'flush'):
+                storage.flush()
         
     def _serialize(self, doc: Dict) -> Dict:
         """Convert objects like ObjectId/datetime to JSON-serializable formats"""
@@ -93,6 +100,7 @@ class LocalBackend(DatabaseInterface):
                 self.inserted_id = inserted_id
                 
         db.insert(doc)
+        self._flush(collection)  # Persist immediately
         return InsertOneResult(doc["_id"])
 
     async def update_one(self, collection: str, query: Dict, update: Dict, upsert: bool = False) -> Any:
@@ -149,11 +157,16 @@ class LocalBackend(DatabaseInterface):
         modified_count = 0
         for doc in docs:
              update_func(doc)
-             db.update(doc, doc_ids=[doc.doc_id])
+             # Serialize entire doc to handle pre-existing datetime objects
+             doc_id = doc.doc_id
+             serialized_doc = self._serialize(dict(doc))
+             serialized_doc.pop('doc_id', None)  # Remove TinyDB internal field
+             db.update(serialized_doc, doc_ids=[doc_id])
              modified_count += 1
              
         class UpdateResult:
             def __init__(self, c): self.modified_count = c
+        self._flush(collection)  # Persist immediately
         return UpdateResult(modified_count)
 
     async def delete_one(self, collection: str, query: Dict) -> Any:
@@ -172,6 +185,7 @@ class LocalBackend(DatabaseInterface):
         
         class DeleteResult:
             def __init__(self, c): self.modified_count = c
+        self._flush(collection)  # Persist immediately
         return DeleteResult(len(removed))
 
     async def create_ttl_index(self, collection: str, field: str, expireAfterSeconds: int):

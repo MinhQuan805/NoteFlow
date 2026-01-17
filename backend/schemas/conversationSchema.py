@@ -3,7 +3,7 @@ from typing import List, Optional, Literal
 from datetime import datetime
 
 class MessagePart(BaseModel):
-    type: Literal["text", "code", "image", "source-url", "reasoning"]
+    type: Literal["text", "code", "image", "source-url", "reasoning", "slides"]
     text: str
 
 class MessageItem(BaseModel):

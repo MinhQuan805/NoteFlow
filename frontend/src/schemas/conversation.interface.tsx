@@ -1,7 +1,7 @@
 export type RoleType = "user" | "system" | "assistant";
 
 export interface MessagePart {
-  type: "text" | "code" | "image" | "source-url" | "reasoning";
+  type: "text" | "code" | "image" | "source-url" | "reasoning" | "slides";
   text: string;
 }
 
