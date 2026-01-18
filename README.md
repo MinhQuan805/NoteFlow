@@ -123,7 +123,7 @@ Mở trình duyệt tại: http://localhost:3000
 | Frontend | Next.js 15, TailwindCSS, Radix UI |
 | Backend | FastAPI, Python 3.10 |
 | Database | MongoDB, FAISS |
-| LLM | Gemini 2.5 Flash |
+| LLM | Gemini or OpenAI models |
 | Parsing | LlamaParse |
 | Embeddings | all-MiniLM-L6-v2 |
 
