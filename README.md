@@ -34,7 +34,6 @@ NoteFlow/
 ├── backend/          # FastAPI server + RAG pipeline
 ├── frontend/         # Next.js 15 web app
 ├── benchmark/        # Evaluation scripts & dataset
-└── report-latex/     # Academic report (Vietnamese)
 ```
 
 ## 🚀 Cài đặt
