@@ -14,4 +14,4 @@ debug/
 report-latex/
 # benchmark/
 # create_intent_classifier.ipynb
-.gitignore
+gitignore
