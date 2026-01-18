@@ -361,6 +361,45 @@ class RAGSystem:
         
         return response_text
 
+    def query_benchmark(self, user_query: str, file_filters: List[str] = None) -> str:
+        """
+        Query for benchmarking with concise answers (2-3 sentences).
+        Optimized for evaluation metrics comparison.
+        """
+        if not self.ensemble_retriever:
+            return "Error: No documents indexed."
+            
+        docs = self.ensemble_retriever.invoke(user_query)
+        
+        if file_filters:
+            filtered_docs = []
+            for doc in docs:
+                source = doc.metadata.get("source", "")
+                if any(f in source for f in file_filters):
+                    filtered_docs.append(doc)
+            docs = filtered_docs
+            
+        if not docs:
+            return "No relevant documents found."
+        
+        context = ""
+        for doc in docs[:5]:  # Limit to top 5 docs for concise answers
+            context += f"{doc.page_content}\n\n"
+        
+        prompt = f"""Answer the following question based on the context.
+Be concise: respond in 2-3 sentences maximum. Only include the most relevant information.
+Do not add citations or source references.
+
+Context:
+{context}
+
+Question: {user_query}
+
+Answer:"""
+        
+        response = self.llm_client.invoke(prompt)
+        return response.content.strip()
+
     def debug_retrieval(self, user_query: str):
         """Debug retrieval performance by showing vector and BM25 results"""
         print(f"\n{'='*60}")

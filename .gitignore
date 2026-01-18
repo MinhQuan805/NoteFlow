@@ -1,0 +1,16 @@
+# Deprecated/test files
+main_branch/
+megallm/
+self_contained_ai/
+test_gg_studio.py
+test_reranker.py
+
+# Environment & Data (sensitive/generated)
+.env
+data/
+debug/
+
+# Uncomment if you DON'T want to push these:
+report-latex/
+benchmark/
+create_intent_classifier.ipynb

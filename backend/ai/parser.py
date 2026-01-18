@@ -88,7 +88,7 @@ def results_into_list_of_strings(results):
     return list_of_strings
 
 # --- Function to parse multiple files in parallel ---
-def parse_multiple_paths_parallel(path_list, max_workers=10):
+def parse_multiple_paths_parallel(path_list, max_workers=15):
     all_results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_path = {executor.submit(parse_single_path, path): path for path in path_list}
