@@ -4,8 +4,6 @@
 
 NoteFlow là một ứng dụng RAG (Retrieval-Augmented Generation) cho phép người dùng chat với tài liệu cá nhân, tổ chức kiến thức theo Notebook, và tự động tạo bài thuyết trình.
 
-![NoteFlow Demo](report-latex/full_stack_friend_draft/interface/2.%20Main.png)
-
 ## ✨ Tính năng chính
 
 - 📁 **Quản lý tài liệu** - Upload PDF, DOCX, TXT hoặc cào nội dung từ URL
