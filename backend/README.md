@@ -55,5 +55,3 @@ MONGO_URI=mongodb://localhost:27017
 | POST | `/files/upload_files/{id}` | Upload và ingest file |
 | POST | `/query/{notebookId}/{conversationId}` | Chat với RAG |
 | POST | `/generate_slides/...` | Tạo slide tự động |
-
-Xem full API docs tại: http://localhost:8000/docs
