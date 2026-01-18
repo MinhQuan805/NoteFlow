@@ -12,5 +12,6 @@ debug/
 
 # Uncomment if you DON'T want to push these:
 report-latex/
-benchmark/
-create_intent_classifier.ipynb
+# benchmark/
+# create_intent_classifier.ipynb
+.gitignore
