@@ -7,6 +7,7 @@ import { getAllSlides } from '@/lib/api/slideApi'
 import NoteContainer from '@/components/client/notebook/note/NoteContainer'
 import { getAllFiles } from '@/lib/api/fileApi'
 import { getAllConversations } from '@/lib/api/conversationApi'
+import NotebookLayoutClient from './NotebookLayoutClient'
 
 
 export default async function NotebookLayout({
@@ -24,26 +25,28 @@ export default async function NotebookLayout({
   const conversations = await getAllConversations(notebookId);
 
   return (
-    <div className="h-screen">
-      <div className="flex p-3 gap-4 bg-gray-100 h-full">
-        {/* Sidebar */}
-        <div className="w-1/4 flex flex-col gap-3 h-full">
-          <div className="h-1/2 rounded-3xl bg-white">
-            <SourceFileUpload initialFiles={files}/>
+    <NotebookLayoutClient initialFiles={files}>
+      <div className="h-screen">
+        <div className="flex p-3 gap-4 bg-gray-100 h-full">
+          {/* Sidebar */}
+          <div className="w-1/4 flex flex-col gap-3 h-full">
+            <div className="h-1/2 rounded-3xl bg-white">
+              <SourceFileUpload />
+            </div>
+            <div className="flex-1 overflow-y-auto h-1/2 rounded-3xl bg-white">
+              <HistoryConversation initialConversations={conversations} />
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto h-1/2 rounded-3xl bg-white">
-            <HistoryConversation initialConversations={conversations}/>
+
+          {/* Main conversation box */}
+          <div className="flex-1 w-1/2 bg-white p-1 rounded-3xl">{children}</div>
+
+          {/* Note list (client component) */}
+          <div className="w-1/4 rounded-3xl bg-white">
+            <NoteContainer initialNotes={notes} />
           </div>
-        </div>
-
-        {/* Main conversation box */}
-        <div className="flex-1 w-1/2 bg-white p-1 rounded-3xl">{children}</div>
-
-        {/* Note list (client component) */}
-        <div className="w-1/4 rounded-3xl bg-white">
-          <NoteContainer initialNotes={notes} initialSlides={slides}/>
         </div>
       </div>
-    </div>
+    </NotebookLayoutClient>
   )
 }

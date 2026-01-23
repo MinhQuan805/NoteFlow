@@ -13,7 +13,9 @@ from sentence_transformers import SentenceTransformer
 class IntentClassifier:
     def __init__(self):
         self.chit_chat_keywords = {kw.lower() for kw in ["hi", "hello", "hola", "hey", "hi there", "hello there", "hey there"]}
-        self.ml_model_path = "intent_router.pkl"
+        # Use absolute path relative to this module's directory
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        self.ml_model_path = os.path.join(module_dir, "intent_router.pkl")
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
         
         if os.path.exists(self.ml_model_path):
@@ -54,20 +56,59 @@ class IntentClassifier:
         return "Retrieval"
 
 class LLMClient:
-    def __init__(self, model_name: str, api_key_env: str):
+    def __init__(self, model_name: str, api_key_env: str, config: dict = None):
         self.model_name = model_name
         self.api_key = os.environ.get(api_key_env)
-        if not self.api_key:
-            print(f"Warning: {api_key_env} not set.")
+        self.config = config or {}
+        self.provider = self.config.get("provider", "gemini")
         
-        self.llm = ChatGoogleGenerativeAI(
-            model=self.model_name,
-            google_api_key=self.api_key,
-            convert_system_message_to_human=True
-        )
+        if self.provider == "gemini":
+            # Use LangChain's Gemini wrapper
+            if not self.api_key:
+                print(f"Warning: {api_key_env} not set.")
+            
+            self.llm = ChatGoogleGenerativeAI(
+                model=self.model_name,
+                google_api_key=self.api_key,
+                convert_system_message_to_human=True
+            )
+            self.use_langchain = True
+            
+        elif self.provider == "openai_compatible":
+            # Use native OpenAI client for OpenAI-compatible APIs
+            from openai import OpenAI
+            
+            openai_api_key = os.environ.get(self.config.get("openai_api_key_env", "MEGALLM_API_KEY"))
+            if not openai_api_key:
+                print(f"Warning: {self.config.get('openai_api_key_env')} not set.")
+            
+            self.client = OpenAI(
+                base_url=self.config.get("openai_base_url", "https://ai.megallm.io/v1"),
+                api_key=openai_api_key
+            )
+            self.openai_model = self.config.get("openai_model", "openai-gpt-oss-120b")
+            self.use_langchain = False
+        else:
+            raise ValueError(f"Unknown LLM provider: {self.provider}")
 
     def invoke(self, prompt: str) -> Any:
-        return self.llm.invoke(prompt)
+        if self.use_langchain:
+            # LangChain-based invoke (Gemini)
+            return self.llm.invoke(prompt)
+        else:
+            # Native OpenAI client invoke
+            response = self.client.chat.completions.create(
+                model=self.openai_model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            # Return LangChain-compatible response format
+            class Response:
+                def __init__(self, content):
+                    self.content = content
+            
+            return Response(response.choices[0].message.content)
 
 class VectorDBClient:
     def __init__(self, index_path: str, embedding_function: Any, embedding_size: int = 384):

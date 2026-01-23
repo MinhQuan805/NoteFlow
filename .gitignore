@@ -1,0 +1,9 @@
+main_branch/
+megallm/
+self_contained_ai/
+test_gg_studio.py
+test_reranker.py
+.env
+data/
+debug/
+report-latex/

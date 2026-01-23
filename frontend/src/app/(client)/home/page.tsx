@@ -12,33 +12,33 @@ import { useRouter } from "next/navigation"
 
 
 export default function Home() {
-  
+
   const router = useRouter()
   const [notebooks, setNotebooks] = useState<Notebook[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-      const fetchData = async () => {
-        try {
-          setLoading(true)
-          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notebooks`)
-          setNotebooks(res.data)
-        } catch (err) {
-          toast.error("Failed to load notes")
-        } finally {
-          setLoading(false)
-        }
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/notebooks`)
+        setNotebooks(res.data)
+      } catch (err) {
+        toast.error("Failed to load notes")
+      } finally {
+        setLoading(false)
       }
-      fetchData()
-    }, [])
-  
+    }
+    fetchData()
+  }, [])
+
   const handleDelete = async (id: string, idAvatar: string) => {
     try {
       if (!idAvatar) {
         idAvatar = "noAvatar"
       }
       await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/notebooks/delete/${id}/${idAvatar}`);
-      
+
       // Filter remained notebook
       const updatedNotebooks = notebooks.filter(c => c.id !== id);
       setNotebooks(updatedNotebooks);
@@ -62,7 +62,7 @@ export default function Home() {
   if (notebooks.length === 0) {
     return (
       <div className="flex items-center justify-center w-full h-screen">
-        <CreateNote/>
+        <CreateNote />
       </div>
     )
   }
@@ -70,50 +70,51 @@ export default function Home() {
   return (
     <div className="p-8 w-full">
       <h1 className="text-3xl font-bold mb-6">Your Notebooks 📔</h1>
-      
-      <div className="flex flex-wrap gap-6 justify-center"> 
-        <CreateNote/>
-        
+
+      <div className="flex flex-wrap gap-6 justify-center">
+        <CreateNote />
+
         {notebooks.map((notebook) => (
-            <div
-              className="relative overflow-hidden flex flex-col items-center justify-center 
+          <div
+            key={notebook.id}
+            className="relative overflow-hidden flex flex-col items-center justify-center 
                         w-70 h-52 p-8 rounded-xl cursor-pointer 
                         transition-shadow bg-cover bg-center"
-              style={
-                notebook.avatar
-                  ? { backgroundImage: `url(${notebook.avatar})` }
-                  : { backgroundColor: notebook.bgcolor }
+            style={
+              notebook.avatar
+                ? { backgroundImage: `url(${notebook.avatar})` }
+                : { backgroundColor: notebook.bgcolor }
+            }
+            onClick={() => handleLearn(notebook.id)}
+          >
+            {/* Dark gradient overlay at the bottom half */}
+            {notebook.avatar && (
+              <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/100 to-transparent" />
+            )}
+            <div
+              onClick={
+                (e) => e.stopPropagation()
               }
-              onClick={() => handleLearn(notebook.id)}
             >
-              {/* Dark gradient overlay at the bottom half */}
-              {notebook.avatar && (
-                <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/100 to-transparent" />
-              )}
-              <div
-                onClick={
-                  (e) => e.stopPropagation()
-                }
-              >
-                <ActionTrigger
-                  className="text-gray-500"
-                  apiLink={`notebooks`}
-                  onDelete={() => handleDelete(notebook.id, notebook.idAvatar)}
-                  id={notebook.id}
-                />
-              </div>
-              <div className={notebook.avatar ? "text-white" : "text-gray-700"}>
+              <ActionTrigger
+                className="text-gray-500"
+                apiLink={`notebooks`}
+                onDelete={() => handleDelete(notebook.id, notebook.idAvatar)}
+                id={notebook.id}
+              />
+            </div>
+            <div className={notebook.avatar ? "text-white" : "text-gray-700"}>
               <h3 className="text-2xl font-bold mt-4 
                             ">
                 {notebook.title}
               </h3>
-              
+
               <p className="text-sm mt-1">
                 {new Date(notebook.updated_at).toLocaleDateString()}
               </p>
-              </div>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
     </div>
   )

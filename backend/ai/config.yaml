@@ -1,11 +1,19 @@
 system:
-  threshold_ratio: 0.2
+  token_threshold: 80000  # Switch to RAG mode if total tokens > this value
   chunk_size: 1000
   chunk_overlap: 200
 
 llm:
+  provider: "openai_compatible"  # Options: "gemini", "openai_compatible"
+  
+  # Gemini configuration
   model_name: "gemini-2.5-flash"
   api_key_env: "GOOGLE_API_KEY"
+  
+  # OpenAI-compatible configuration (for MegaLLM, etc.)
+  openai_base_url: "https://ai.megallm.io/v1"
+  openai_model: "openai-gpt-oss-120b"
+  openai_api_key_env: "MEGALLM_API_KEY"
 
 embedding:
   model_name: "all-MiniLM-L6-v2"
@@ -13,7 +21,7 @@ embedding:
   device: "cpu"
 
 retrieval:
-  k: 12
+  k: 20
   
 parsing:
   api_key_env: "LLAMA_PARSE_API_KEY"

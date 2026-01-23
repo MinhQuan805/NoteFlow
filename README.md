@@ -1,64 +1,138 @@
-## 📂 Cấu trúc thư mục
+# NoteFlow 📚
 
-````
-# 🚀 Cách chạy dự án
+**Hệ thống quản lý và truy xuất tri thức từ tài liệu cá nhân**
 
-## 🔹 Backend (FastAPI)
+NoteFlow là một ứng dụng RAG (Retrieval-Augmented Generation) cho phép người dùng chat với tài liệu cá nhân, tổ chức kiến thức theo Notebook, và tự động tạo bài thuyết trình.
 
-1. **Cài thư viện cần thiết**
+## ✨ Tính năng chính
 
-   ```bash
-   pip install -r requirements.txt
-````
+- 📁 **Quản lý tài liệu** - Upload PDF, DOCX, TXT hoặc cào nội dung từ URL
+- 💬 **Chat thông minh** - Hỏi đáp với tài liệu, có trích dẫn nguồn
+- 🔍 **Hybrid Search** - Kết hợp BM25 (keyword) và Vector Search (semantic)
+- 🎯 **Intent Classification** - Tự động phân loại chat thường vs câu hỏi cần RAG
+- 📝 **Ghi chú** - Rich text editor tích hợp (BlockNote)
+- 🎨 **Tạo Slide tự động** - Sinh bài thuyết trình từ tài liệu với KaTeX support
 
-2. **Chạy server**
+## 🏗️ Kiến trúc
 
-   ```bash
-   uvicorn main:app --reload
-   ```
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────────────┐
+│  Frontend   │────▶│   Backend   │────▶│    AI Services      │
+│  Next.js 15 │     │   FastAPI   │     │  Gemini + LlamaParse│
+└─────────────┘     └──────┬──────┘     └─────────────────────┘
+                           │
+                    ┌──────┴──────┐
+                    │  Database   │
+                    │ MongoDB+FAISS│
+                    └─────────────┘
+```
 
-   > Server sẽ chạy tại: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+## 📁 Cấu trúc thư mục
 
----
+```
+NoteFlow/
+├── backend/          # FastAPI server + RAG pipeline
+├── frontend/         # Next.js 15 web app
+├── benchmark/        # Evaluation scripts & dataset
+```
 
-## 🔹 Frontend (Next.js)
+## 🚀 Cài đặt
 
-> ⚠️ Yêu cầu: Cài đặt **Node.js >= v22.19.0**
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- MongoDB (local hoặc Atlas)
 
-1. **Cài thư viện cần thiết**
-
-   ```bash
-   npm install
-   ```
-
-2.1 **Chạy ứng dụng phía developer**
-
-Chạy dự án
-
+### 1. Clone repository
 ```bash
+git clone https://github.com/your-username/NoteFlow.git
+cd NoteFlow
+```
+
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+```
+
+### 3. Environment Variables
+Tạo file `.env` trong `backend/`:
+```env
+# LLM
+GOOGLE_API_KEY=your_gemini_api_key
+
+# Document Parsing
+LLAMA_PARSE_API_KEY=your_llamaparse_api_key
+
+# Database
+MONGO_URI=mongodb://localhost:27017
+# hoặc MongoDB Atlas connection string
+
+# File Storage (optional)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### 4. Frontend Setup
+```bash
+cd frontend
+npm install
+```
+
+Tạo file `.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### 5. Chạy ứng dụng
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
 npm run dev
 ```
 
-> Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+Mở trình duyệt tại: http://localhost:3000
 
-2.2 **Chạy ứng dụng phía client**
+## 📊 Benchmark
 
-Build Project
+Đánh giá trên 88 câu hỏi từ Stanford CS224N:
 
-```bash
-npm run build
-```
+| Metric | Score |
+|--------|-------|
+| F1 Score | 33.08% |
+| ROUGE-L | 27.68% |
+| Contains | 58.13% |
+| **Cosine Similarity** | **64.07%** |
 
-Chạy dự án
+> Cosine Similarity cao chứng tỏ hệ thống truy xuất đúng thông tin, dù LLM diễn đạt lại bằng từ ngữ khác.
 
-```bash
-npm run build
-```
+## 🛠️ Tech Stack
 
-> Ứng dụng sẽ chạy tại: [http://localhost:3000](http://localhost:3000)
+| Component | Technology |
+|-----------|------------|
+| Frontend | Next.js 15, TailwindCSS, Radix UI |
+| Backend | FastAPI, Python 3.10 |
+| Database | MongoDB, FAISS |
+| LLM | Gemini or OpenAI models |
+| Parsing | LlamaParse |
+| Embeddings | all-MiniLM-L6-v2 |
 
----
+## 👥 Nhóm phát triển
 
-## Notes
+| Họ tên | MSSV |
+|--------|------|
+| Nguyễn Quốc Khánh | 24520793 |
+| Võ Minh Quân | 24521459 |
 
-Links sent from the frontend that are invalid or cause errors will not be ingested, so they must be checked first
+**Môn học:** CS311 - Kĩ thuật lập trình Trí tuệ nhân tạo  
+**Trường:** Đại học Công nghệ Thông tin - ĐHQG TP.HCM

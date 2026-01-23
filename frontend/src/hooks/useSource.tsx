@@ -2,8 +2,11 @@ import { useState } from 'react'
 import * as fileApi from '@/lib/api/fileApi'
 import { SingleFile } from '@/schemas/fileStorage.interface'
 
-export function useSource(initialFiles: SingleFile[], notebookId: string) {
-  const [files, setFiles] = useState(initialFiles)
+export function useSource(
+  files: SingleFile[],
+  setFiles: React.Dispatch<React.SetStateAction<SingleFile[]>>,
+  notebookId: string
+) {
   const [loadingAdd, setLoadingAdd] = useState(false)
   const [loadingDownload, setLoadingDownload] = useState<string | null>(null)
 
@@ -36,6 +39,6 @@ export function useSource(initialFiles: SingleFile[], notebookId: string) {
     setTimeout(() => setLoadingDownload(null), 1000)
   }
 
-  
-  return { files, addFile, deleteFile, downloadFile, setFiles, loadingAdd, loadingDownload }
+
+  return { addFile, deleteFile, downloadFile, loadingAdd, loadingDownload }
 }

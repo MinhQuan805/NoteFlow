@@ -14,10 +14,7 @@ from config.database import db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    collection = db["conversations"]
-    indexes = await collection.index_information()
-    if "expireAt_1" not in indexes:
-        await collection.create_index("expireAt", expireAfterSeconds=0)
+    await db.create_ttl_index("conversations", "expireAt", expireAfterSeconds=0)
     yield
     
 app = FastAPI(

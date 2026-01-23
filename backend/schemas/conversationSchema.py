@@ -4,8 +4,7 @@ from datetime import datetime
 
 class MessagePart(BaseModel):
     type: Literal["text", "code", "image", "source-url", "reasoning", "slides"]
-    text: str = ""
-    url: Optional[str] = None  # For source-url type
+    text: str
 
 class MessageItem(BaseModel):
     id: str

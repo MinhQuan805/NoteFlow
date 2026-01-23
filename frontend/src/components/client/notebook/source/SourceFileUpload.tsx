@@ -13,6 +13,7 @@ import { useFileSelect } from '@/hooks/useFileSelect'
 import { SingleFile } from '@/schemas/fileStorage.interface'
 import Image from "next/image";
 import AddSource from './AddSource'
+import { useFileContext } from '@/contexts/FileContext'
 
 const icons = [
   { format: 'pdf', source: '/icon/format/pdf.png' },
@@ -25,15 +26,18 @@ const icons = [
   { format: 'url', source: '/icon/format/url.png' },
 ]
 
-export default function SourceFileUpload({ initialFiles }: { initialFiles: SingleFile[] }) {
+export default function SourceFileUpload() {
   const params = useParams<{ notebookId: string }>()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [actionOpen, setActionOpen] = useState(false)
 
-  const { files, addFile, deleteFile, 
-          downloadFile, setFiles, loadingAdd, loadingDownload 
-        } = useSource(initialFiles, params.notebookId)
-        
+  // Use FileContext for shared file state
+  const { files, setFiles } = useFileContext()
+
+  const { addFile, deleteFile,
+    downloadFile, loadingAdd, loadingDownload
+  } = useSource(files, setFiles, params.notebookId)
+
   const { toggleSelectFile, toggleSelectAll } = useFileSelect(params.notebookId, files, setFiles)
 
   return (
@@ -61,26 +65,25 @@ export default function SourceFileUpload({ initialFiles }: { initialFiles: Singl
           <div
             key={file.public_id}
             onClick={() => { setActionOpen(true); setSelectedId(file.public_id) }}
-            className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition ${
-              selectedId === file.public_id ? 'bg-gray-100' : 'hover:bg-gray-50'
-            }`}
+            className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition ${selectedId === file.public_id ? 'bg-gray-100' : 'hover:bg-gray-50'
+              }`}
           >
             <div className="flex items-center space-x-2 w-3/4 overflow-hidden">
               <div className="flex items-center flex-shrink-0">
                 {(actionOpen && file.public_id === selectedId)
                   ? <ActionTrigger
-                      className="text-gray-500 hover:bg-gray-200 rounded-full"
-                      apiLink={`files`}
-                      onDelete={() => deleteFile(file.public_id, file.format)}
-                      id={`${params.notebookId}/${file.public_id}/${file.format}`}
-                    />
+                    className="text-gray-500 hover:bg-gray-200 rounded-full"
+                    apiLink={`files`}
+                    onDelete={() => deleteFile(file.public_id, file.format)}
+                    id={`${params.notebookId}/${file.public_id}/${file.format}`}
+                  />
                   : <Image
-                      src={icons.find(i => i.format === file.format)?.source || '/icon/format/other.png'}
-                      alt="file icon"
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                    />
+                    src={icons.find(i => i.format === file.format)?.source || '/icon/format/other.png'}
+                    alt="file icon"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
                 }
               </div>
               <span className="text-gray-700 text-sm truncate w-full">{file.title}</span>

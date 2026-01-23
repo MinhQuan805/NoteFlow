@@ -9,10 +9,10 @@ from routers.filesRouter import create_file_storage
 from libs.cloudinary import upload_image, delete_cloud_file
 from typing import Optional
 
-notebook_collection = db["notebooks"]
-conversation_collection = db["conversations"]
+notebook_collection = "notebooks"
+conversation_collection = "conversations"
+file_collection = "files"
 
-file_collection = db["files"]
 router = APIRouter(
     prefix="/notebooks",
     tags=["notebooks"]
@@ -22,9 +22,9 @@ router = APIRouter(
 # Get all notebooks
 @router.get("/", response_model=list)
 async def get_all_notebooks():
-    docs = notebook_collection.find({}, sort=[("updated_at", -1)])
+    docs = await db.find(notebook_collection, {}, sort=[("updated_at", -1)])
     notebooks = []
-    async for doc in docs:
+    for doc in docs:
         notebooks.append({
             "id": str(doc["_id"]),
             "title": doc["title"],
@@ -40,16 +40,18 @@ async def get_all_notebooks():
 # Get a single notebook by ID
 @router.get("/{notebookId}", response_model=dict)
 async def get_notebook(notebookId: str):
-    doc = await notebook_collection.find_one({"_id": ObjectId(notebookId)})
+    doc = await db.find_one(notebook_collection, {"_id": ObjectId(notebookId)})
     if not doc:
         raise HTTPException(status_code=404, detail="Notebook not found")
     now = datetime.now(timezone.utc)
-    await notebook_collection.update_one(
+    await db.update_one(
+        notebook_collection,
         {"_id": ObjectId(notebookId)},
         {"$set": {"updated_at": now}}
     )
-    conversation = await conversation_collection.find_one(
-        {"notebookId": notebookId},
+    conversation = await db.find_one(
+        conversation_collection,
+        {"notebookId": notebookId}
     )
     return {
         "conversationId": str(conversation["_id"]),
@@ -63,14 +65,9 @@ async def get_notebook(notebookId: str):
 async def create_notebook(upload: Notebook):
     now = datetime.now(timezone.utc)
     data = upload.model_dump()
-
-    # Hash password
-    # if data.get("password"):
-    #     hashed_pw = bcrypt.hashpw(data["password"].encode("utf-8"), bcrypt.gensalt())
-    #     data["password"] = hashed_pw.decode("utf-8")
     data.update({"created_at": now, "updated_at": now})
 
-    result = await notebook_collection.insert_one(data)
+    result = await db.insert_one(notebook_collection, data)
 
     notebookId = str(result.inserted_id)
 
@@ -90,13 +87,10 @@ async def update_title(notebookId: str, title: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid notebook_id format")
     
-    result = await notebook_collection.update_one(
+    result = await db.update_one(
+        notebook_collection,
         {"_id": notebook_obj_id},
-        {
-            "$set": {
-                "title": title
-            }
-        }
+        {"$set": {"title": title}}
     )
 
     if result.modified_count == 1:
@@ -112,13 +106,14 @@ async def update_notebook(notebookId: str, upload: Notebook):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid notebookId format")
     now = datetime.now(timezone.utc)
-    result = await notebook_collection.update_one(
+    result = await db.update_one(
+        notebook_collection,
         {"_id": notebook_obj_id},
         {"$set": {**upload.model_dump(exclude_unset=True), "updated_at": now}}
     )
 
     if result.modified_count == 1:
-        doc = await notebook_collection.find_one({"_id": ObjectId(notebookId)})
+        doc = await db.find_one(notebook_collection, {"_id": ObjectId(notebookId)})
         return Notebook(
             title=doc["title"],
             avatar=doc.get("avatar", ""),
@@ -142,9 +137,8 @@ async def handle_upload(image: UploadFile):
 async def delete_notebook(notebookId: str, idAvatar: str):
     if idAvatar != "noAvatar":
         await delete_cloud_file(idAvatar, "image")
-    result = await notebook_collection.delete_one({"_id": ObjectId(notebookId)})
-    # Delete file storage for notebook
-    if result.deleted_count == 1:
+    result = await db.delete_one(notebook_collection, {"_id": ObjectId(notebookId)})
+    if result.modified_count == 1:
         return {"status": True, "message": "Notebook deleted successfully"}
     else:
-        raise HTTPException(status_code=404, detail="Notebook not found")    
+        raise HTTPException(status_code=404, detail="Notebook not found")

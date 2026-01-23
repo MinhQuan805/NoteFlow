@@ -42,7 +42,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner/index";
 
 // Icon
-import { CopyIcon, Loader, RefreshCcwIcon, Presentation } from "lucide-react";
+import { CopyIcon, Loader, RefreshCcwIcon, Presentation } from 'lucide-react';
 
 // Packages
 import axios from "axios";
@@ -56,15 +56,25 @@ import SlidesViewer from "./note/SlidesViewer";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+// Slide components
+import SlidesViewer from './note/SlidesViewer';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
+// Context for file filtering
+import { useFileContext } from '@/contexts/FileContext';
+
 export default function ConversationBox() {
+
   const params = useParams<{ notebookId: string; conversationId: string }>();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingQuery, setLoadingQuery] = useState<
-    "submitted" | "streaming" | "ready" | "error"
-  >("ready");
+  const [loading, setLoading] = useState(false)
+  const [loadingQuery, setLoadingQuery] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
   const [viewSlideHtml, setViewSlideHtml] = useState<string | null>(null);
   const [isSlideViewerOpen, setIsSlideViewerOpen] = useState(false);
+
+  // Get file filter function from context
+  const { getCheckedFileFilters } = useFileContext();
 
   // State to store all messages of the conversation
   const { messages, sendMessage, status, setMessages } = useChat({
@@ -91,8 +101,9 @@ export default function ConversationBox() {
           );
           setMessages(conversationData.data.messages);
         }
-      } finally {
-        setLoading(false);
+      }
+      finally {
+        setLoading(false)
       }
     };
 
@@ -146,13 +157,18 @@ export default function ConversationBox() {
           `conversations/update_title/${params.conversationId}?title=${text.slice(0, 35)}...`,
         );
       }
-      setLoadingQuery("submitted");
+      setLoadingQuery('submitted');
+
+      // Get checked file filters from context
+      const fileFilters = getCheckedFileFilters();
+      console.log('[ConversationBox] Sending query with file_filters:', fileFilters);
+
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/conversations/query/${params.notebookId}/${params.conversationId}`,
         {
           message_item: newMessage,
           query: text,
-          file_filters: [],
+          file_filters: fileFilters.length > 0 ? fileFilters : null, // null = use all files
         },
         { headers: { "Content-Type": "application/json" } },
       );
@@ -170,32 +186,78 @@ export default function ConversationBox() {
     setIsSlideViewerOpen(true);
   };
 
+  // Handle generate slides button click
+  const handleGenerateSlides = async () => {
+    // Use text if provided, otherwise use default prompt based on selected sources
+    const fileFilters = getCheckedFileFilters();
+
+    // Hard limit: exactly 1 document for slide generation
+    if (fileFilters.length > 1) {
+      toast.error('Please select exactly 1 document for slide generation');
+      return;
+    }
+
+    const defaultTopic = fileFilters.length > 0
+      ? `Create presentation slides from: ${fileFilters.join(', ')}`
+      : 'Create presentation slides from the available documents';
+
+    const topic = text.trim() ? text : defaultTopic;
+
+    const newMessage: MessageItem = {
+      id: crypto.randomUUID(),
+      role: "user",
+      parts: [{ type: "text", text: topic }],
+    };
+
+    try {
+      const updatedMessages = [...messages, newMessage as any];
+      setText('');
+      setMessages(updatedMessages);
+      setLoadingQuery('submitted');
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/generate_slides/${params.conversationId}`,
+        {
+          message_item: newMessage,
+          query: topic,
+          file_filters: fileFilters.length > 0 ? fileFilters : null,
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      setLoadingQuery('ready');
+
+      setMessages([...updatedMessages, res.data.response_message]);
+      toast.success('Slides generated successfully!');
+    } catch (err) {
+      console.error('Error generating slides:', err);
+      setLoadingQuery('ready');
+      toast.error('Failed to generate slides. Please try again.');
+    }
+  };
+
   const renderedMessages = useMemo(() => {
     return (messages as MessageItem[]).map((message) => (
       <div key={message.id}>
-        {message.role === "assistant" &&
-          message.parts.filter((part) => part.type === "source-url").length >
-            0 && (
-            <Sources>
-              <SourcesTrigger
-                count={
-                  message.parts.filter((part) => part.type === "source-url")
-                    .length
-                }
-              />
-              {message.parts
-                .filter((part) => part.type === "source-url")
-                .map((part, i) => (
-                  <SourcesContent key={`${message.id}-${i}`}>
-                    <Source
-                      key={`${message.id}-${i}`}
-                      href={part.url}
-                      title={part.url}
-                    />
-                  </SourcesContent>
-                ))}
-            </Sources>
-          )}
+        {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
+          <Sources>
+            <SourcesTrigger
+              count={
+                message.parts.filter(
+                  (part) => part.type === 'source-url',
+                ).length
+              }
+            />
+            {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
+              <SourcesContent key={`${message.id}-${i}`}>
+                <Source
+                  key={`${message.id}-${i}`}
+                  href={part.url}
+                  title={part.url}
+                />
+              </SourcesContent>
+            ))}
+          </Sources>
+        )}
 
         {message.parts.map((part, i) => {
           switch (part.type) {
@@ -206,11 +268,10 @@ export default function ConversationBox() {
                     <MessageContent>
                       {message.role === "assistant" ? (
                         <Response>{part.text}</Response>
-                      ) : (
-                        <p className="whitespace-pre-wrap break-words">
-                          {part.text}
-                        </p>
-                      )}
+                      )
+                        : (
+                          <p className="whitespace-pre-wrap break-words">{part.text}</p>
+                        )}
                     </MessageContent>
                   </Message>
                   {message.role === "assistant" &&
@@ -254,7 +315,30 @@ export default function ConversationBox() {
                   </div>
                 </Fragment>
               );
-            case "reasoning":
+            case 'slides':
+              return (
+                <Fragment key={`${message.id}-${i}`}>
+                  <div className="max-w-full mb-4">
+                    <div className="border rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Presentation className="h-5 w-5 text-red-600" />
+                        <h3 className="font-semibold text-gray-800">Presentation Slides Generated</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Your slides are ready to view!
+                      </p>
+                      <Button
+                        onClick={() => handleViewSlide(part.text)}
+                        className="bg-red-400 hover:bg-red-600 text-white rounded-full"
+                      >
+                        <Presentation className="h-4 w-4 mr-2" />
+                        View Slides
+                      </Button>
+                    </div>
+                  </div>
+                </Fragment>
+              );
+            case 'reasoning':
               return (
                 <Reasoning
                   key={`${message.id}-${i}`}
@@ -281,7 +365,7 @@ export default function ConversationBox() {
       {/* Conversation messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 pb-28">
         {loading ? (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex justify-center items-center h-full">
             <Spinner variant="ring" key="ring" />
           </div>
         ) : (
@@ -291,8 +375,8 @@ export default function ConversationBox() {
               {status === "submitted" && <Loader />}
             </ConversationContent>
             <ConversationScrollButton />
-            {loadingQuery === "submitted" && (
-              <div className="ml-6 flex justify-start">
+            {loadingQuery === 'submitted' && (
+              <div className="flex justify-start ml-6">
                 <Spinner variant="ring" />
               </div>
             )}
@@ -302,7 +386,7 @@ export default function ConversationBox() {
       </div>
 
       {/* Fixed prompt input at the bottom */}
-      <div className="border-t border-gray-200 p-2">
+      <div className="p-2 border-t border-gray-200">
         <PromptInput onSubmit={handleSubmit} className="rounded-3xl">
           <PromptInputTextarea
             className="ml-1 mt-1"
@@ -311,12 +395,19 @@ export default function ConversationBox() {
             placeholder="Ask me anything..."
           />
 
-          <PromptInputToolbar className="justify-end">
-            <PromptInputSubmit
-              className="rounded-4xl mb-1 mr-1 cursor-pointer"
-              status={loadingQuery}
-              disabled={!text}
-            />
+          <PromptInputToolbar className='justify-end gap-2'>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleGenerateSlides}
+              disabled={loadingQuery === 'submitted' || getCheckedFileFilters().length > 1}
+              className="rounded-full cursor-pointer h-8 w-8"
+              title={getCheckedFileFilters().length > 1 ? 'Select only 1 document for slides' : 'Generate Slides'}
+            >
+              <Presentation className="h-4 w-4" />
+            </Button>
+            <PromptInputSubmit className='rounded-4xl mr-1 mb-1 cursor-pointer' status={loadingQuery} disabled={!text} />
           </PromptInputToolbar>
         </PromptInput>
       </div>
