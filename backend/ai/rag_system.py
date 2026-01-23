@@ -400,6 +400,116 @@ Answer:"""
         response = self.llm_client.invoke(prompt)
         return response.content.strip()
 
+    def generate_slides_html(self, user_query: str, file_filters: List[str] = None) -> str:
+        """
+        Generate interactive HTML slides based on retrieved content.
+        """
+        if not self.ensemble_retriever:
+            return "<html><body><h1>Error: No documents indexed.</h1></body></html>"
+        
+        # Retrieve relevant documents
+        docs = self.ensemble_retriever.invoke(user_query)
+        
+        if file_filters:
+            filtered_docs = []
+            for doc in docs:
+                source = doc.metadata.get("source", "")
+                if any(f in source for f in file_filters):
+                    filtered_docs.append(doc)
+            docs = filtered_docs
+        
+        if not docs:
+            return "<html><body><h1>No relevant documents found.</h1></body></html>"
+        
+        # Build context from retrieved documents (no source info)
+        context = "\n".join(doc.page_content for doc in docs)
+
+        # Generate structured slide content using LLM
+        prompt = f"""
+You are an expert educational content creator. Generate an interactive HTML presentation with multiple slides about: {user_query}
+
+Use the following context from documents to create educational content:
+{context}
+
+Create a complete HTML document with:
+1. A title slide with the topic name
+2. Content slides with clear explanations, bullet points, and examples
+3. A summary slide at the end
+
+Each slide should be wrapped in a <div class=\"slide\"> tag.
+Use clear headings, bullet points, and proper formatting.
+
+IMPORTANT: Do NOT include any navigation buttons (Previous/Next), navigation controls, or JavaScript code. The parent application will handle all slide navigation.
+
+Return ONLY the complete HTML document with embedded CSS for modern, clean styling.
+Use this structure:
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=\"UTF-8\">
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }}
+        .slide {{
+            display: none;
+            min-height: 100vh;
+            padding: 60px;
+            box-sizing: border-box;
+            background: white;
+        }}
+        h1 {{
+            color: #2d3748;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-align: center;
+        }}
+        h2 {{
+            color: #4a5568;
+            font-size: 2em;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }}
+        ul {{
+            font-size: 1.3em;
+            line-height: 1.8;
+            color: #2d3748;
+        }}
+        li {{
+            margin-bottom: 15px;
+        }}
+        .summary {{
+            background: #f7fafc;
+            padding: 30px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }}
+    </style>
+</head>
+<body>
+    <div class=\"slide active\">
+        <!-- Title slide content -->
+    </div>
+    <div class=\"slide\">
+        <!-- Content slides -->
+    </div>
+</body>
+</html>
+"""
+
+        response = self.llm_client.invoke(prompt)
+        html_content = response.content
+
+        # Clean up markdown code blocks if present
+        html_content = html_content.replace("```html", "").replace("```", "").strip()
+
+        return html_content
+
     def debug_retrieval(self, user_query: str):
         """Debug retrieval performance by showing vector and BM25 results"""
         print(f"\n{'='*60}")

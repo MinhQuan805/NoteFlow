@@ -7,32 +7,49 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/shadcn-io/spinner';
 import ActionTrigger from '@/components/client/ActionTrigger';
 import { useNotes } from '@/hooks/useNotes';
+import { useSlides } from '@/hooks/useSlides';
 import { Note } from '@/schemas/note.interface';
+import { Slide } from '@/schemas/slide.interface';
 import { Block, } from "@blocknote/core";
 import { getNoteById } from '@/lib/api/noteApi';
+import { getSlideById } from '@/lib/api/slideApi';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from '@/components/ui/separator';
-import { X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { X, Presentation, StickyNote,  } from 'lucide-react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import Image from "next/image";
+import SlidesViewer from './SlidesViewer';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 import "@blocknote/mantine/style.css";
 import "@blocknote/core/fonts/inter.css";
 
 interface NoteContainerProps {
   initialNotes: Note[];
+  initialSlides: Slide[];
 }
 
-export default function NoteContainer({ initialNotes }: NoteContainerProps) {
-  const params = useParams<{ notebookId: string }>();
+export default function NoteContainer({ initialNotes, initialSlides }: NoteContainerProps) {
+  const params = useParams<{ notebookId: string; conversationId: string }>();
 
+  // Notes state
   const [loading, setLoading] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [noteTitle, setNoteTitle] = useState("New note");
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Slides state
+  const [isSlideDialogOpen, setIsSlideDialogOpen] = useState(false);
+  const [slideQuery, setSlideQuery] = useState("");
+  const [generatingSlide, setGeneratingSlide] = useState(false);
+  const [viewingSlide, setViewingSlide] = useState<Slide | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
   const { notes, create, update, remove } = useNotes(initialNotes, params.notebookId);
+  const { slides, create: createSlide, remove: removeSlide } = useSlides(initialSlides, params.notebookId);
 
   const editor = useCreateBlockNote({});
   const reset = () => {
@@ -79,20 +96,121 @@ export default function NoteContainer({ initialNotes }: NoteContainerProps) {
     await remove(id);
   };
 
+  // Slides handlers
+  const handleCreateSlide = () => {
+    setSlideQuery("");
+    setIsSlideDialogOpen(true);
+  };
+
+  const handleGenerateSlide = async () => {
+    if (!slideQuery.trim()) {
+      toast.error("Please enter a topic");
+      return;
+    }
+
+    setGeneratingSlide(true);
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/generate_slides/${params.notebookId}/${params.conversationId}`,
+        {
+          message_item: {
+            id: crypto.randomUUID(),
+            role: "user",
+            parts: [{ type: "text", text: slideQuery }],
+          },
+          query: slideQuery,
+          file_filters: [],
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const htmlContent = res.data.response_message.parts[0].text;
+      const newSlide = await createSlide(slideQuery.slice(0, 50) + "...", htmlContent);
+      
+      if (newSlide) {
+        toast.success("Slides generated successfully!");
+        setIsSlideDialogOpen(false);
+        setSlideQuery("");
+      }
+    } catch (error) {
+      console.error("Error generating presentation:", error);
+      toast.error("Failed to generate presentation");
+    } finally {
+      setGeneratingSlide(false);
+    }
+  };
+
+  const handleViewSlide = async (slide: Slide) => {
+    const fullSlide = await getSlideById(slide.id);
+    setViewingSlide(fullSlide);
+    setIsViewerOpen(true);
+  };
+
+  const handleDeleteSlide = async (id: string) => {
+    await removeSlide(id);
+  };
+
   if (loading) return <Spinner variant="ring" className="w-4 h-4 animate-spin text-white" />;
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-center p-4 bg-white border-b border-gray-200 rounded-t-xl">
-        <Button
-          className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-500 transition cursor-pointer"
-          onClick={handleNewNote}
-        >
-          + New Note
-        </Button>
+      {/* Header with buttons */}
+      <div className="flex justify-center items-center p-3 mb-2 sticky top-0 bg-white z-10 border-b rounded-t-xl">
+        <div className="flex gap-2">
+          <Button
+            onClick={handleCreateSlide}
+            className="flex items-center gap-2 px-3 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+          >
+            <Presentation className="h-4 w-4" />
+            <span className="text-sm">Presentation</span>
+          </Button>
+          <Button
+            onClick={handleNewNote}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
+          >
+            <StickyNote className="h-4 w-4"/>
+            <span className="text-sm">Note</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-1 p-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Slides list */}
+      {slides.length > 0 && (
+        <>
+          <div className="px-3 py-2">
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">Slides</h3>
+          </div>
+          <div className="flex-shrink-0 max-h-[30%] overflow-y-auto space-y-1 px-3">
+            {slides.map((slide) => (
+              <div
+                key={slide.id}
+                onClick={() => handleViewSlide(slide)}
+                className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition hover:bg-red-50 border border-red-100"
+              >
+                <div className="flex items-center gap-2">
+                  <Presentation className="h-4 w-4 text-red-500" />
+                  <span className="text-gray-700 text-base font-medium">{slide.title ?? "Untitled Slides"}</span>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ActionTrigger
+                    className="text-gray-500"
+                    apiLink="slides"
+                    onDelete={() => handleDeleteSlide(slide.id)}
+                    id={slide.id}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Separator className="my-2" />
+        </>
+      )}
+
+      {/* Notes list */}
+      <div className="px-3 py-2">
+        <h3 className="text-sm font-semibold text-gray-600 mb-2">Notes</h3>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-1 px-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {notes.map(note => (
           <div
             key={note.id}
@@ -160,6 +278,75 @@ export default function NoteContainer({ initialNotes }: NoteContainerProps) {
               {editingNote ? "Update" : "Create"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Slide Generation Dialog */}
+      <Dialog open={isSlideDialogOpen} onOpenChange={setIsSlideDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]" showCloseButton={false}>
+          <div className="flex items-center justify-between">
+            <DialogHeader>
+              <DialogTitle>Generate Presentation</DialogTitle>
+            </DialogHeader>
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSlideDialogOpen(false)}
+                className="opacity-70 w-7 h-7 cursor-pointer rounded-full hover:bg-gray-200 focus:outline-none focus:ring-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+          </div>
+
+          <div className="space-y-4 mt-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                What topic would you like to create presentation about?
+              </label>
+              <Textarea
+                placeholder="e.g., Introduction to Machine Learning, Python Basics, etc."
+                value={slideQuery}
+                onChange={(e) => setSlideQuery(e.target.value)}
+                className="h-32"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <DialogClose asChild>
+              <Button variant="outline" className="rounded-full cursor-pointer">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              onClick={handleGenerateSlide}
+              disabled={generatingSlide}
+              className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 cursor-pointer transition"
+            >
+              {generatingSlide ? (
+                <>
+                  <Spinner variant="ring" className="w-4 h-4 mr-2" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Presentation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Slides Viewer Dialog */}
+      <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0" showCloseButton={false}>
+          {viewingSlide && (
+            <SlidesViewer
+              htmlContent={viewingSlide.html_content}
+              onClose={() => setIsViewerOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

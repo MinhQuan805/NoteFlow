@@ -17,8 +17,9 @@ router = APIRouter(
     tags=["conversations"]
 )
 
-@router.post("/query/{conversationId}", response_model=QueryResponse)
-async def query_rag(conversationId: str, request: QueryRequest):
+@router.post("/query/{notebookId}/{conversationId}", response_model=QueryResponse)
+async def query_rag(notebookId: str, conversationId: str, request: QueryRequest):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     """
     Query the RAG system.
     """
@@ -174,6 +175,72 @@ async def generate_slides(conversationId: str, request: QueryRequest):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate_slides/{notebookId}/{conversationId}", response_model=QueryResponse)
+async def generate_slides(notebookId: str, conversationId: str, request: QueryRequest):
+    """
+    Generate interactive HTML slides based on RAG retrieval.
+    """
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
+    now = datetime.now(timezone.utc)
+    
+    try:
+        # Validate conversationId
+        try:
+            obj_id = ObjectId(conversationId)
+        except InvalidId:
+            raise HTTPException(status_code=400, detail="Invalid conversationId")
+
+        conversation = await conversation_collection.find_one({"_id": obj_id})
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        # Add user message to conversation
+        await conversation_collection.update_one(
+            {"_id": obj_id},
+            {
+                "$push": {"messages": request.message_item.model_dump()},
+                "$set": {
+                    "updated_at": now,
+                    "expireAt": now + timedelta(days=3)
+                }
+            }
+        )
+
+        # Generate slides HTML
+        html_content = rag.generate_slides_html(request.query, file_filters=request.file_filters)
+        
+        # Create assistant message with slides
+        assistant_message = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "parts": [
+                {
+                    "type": "slides",
+                    "text": html_content
+                }
+            ]
+        }
+
+        # Save assistant message to conversation
+        await conversation_collection.update_one(
+            {"_id": obj_id},
+            {
+                "$push": {"messages": assistant_message},
+                "$set": {
+                    "updated_at": now,
+                    "expireAt": now + timedelta(days=3)
+                }
+            }
+        )
+        
+        return {
+            "response_message": assistant_message,
+            "intent": "Slides_Generation",
+            "mode": "RAG"
+        }
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Add 1 message into conversation

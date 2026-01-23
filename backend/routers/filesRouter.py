@@ -65,6 +65,7 @@ async def get_all_files(notebookId: str, background_tasks: BackgroundTasks):
 # Upload file
 @router.post("/upload_files/{notebookId}")
 async def upload_endpoint(notebookId: str, files: List[UploadFile] = File(...)):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     try:
         # Get per-notebook RAG instance
         rag = RAGManager.get_rag(notebookId)
@@ -137,6 +138,7 @@ def fetch_web_content(url: str) -> str:
 # Upload source URL
 @router.post("/upload_url/{notebookId}")
 async def upload_url_endpoint(notebookId: str, sources: List[SingleFile] = Body(...)):
+    rag = RAGSystem(config_path="ai/config.yaml", notebook_id=notebookId)
     try:
         # Get per-notebook RAG instance
         rag = RAGManager.get_rag(notebookId)

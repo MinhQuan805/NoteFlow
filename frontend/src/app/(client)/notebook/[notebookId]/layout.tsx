@@ -3,6 +3,7 @@
 import SourceFileUpload from '@/components/client/notebook/source/SourceFileUpload'
 import HistoryConversation from '@/components/client/notebook/HistoryConversation'
 import { getAllNotes } from '@/lib/api/noteApi'
+import { getAllSlides } from '@/lib/api/slideApi'
 import NoteContainer from '@/components/client/notebook/note/NoteContainer'
 import { getAllFiles } from '@/lib/api/fileApi'
 import { getAllConversations } from '@/lib/api/conversationApi'
@@ -19,6 +20,7 @@ export default async function NotebookLayout({
   // Fetch data with server
   const { notebookId } = await params;
   const notes = await getAllNotes(notebookId);
+  const slides = await getAllSlides(notebookId);
   const files = await getAllFiles(notebookId);
   const conversations = await getAllConversations(notebookId);
 
