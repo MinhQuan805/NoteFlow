@@ -136,7 +136,3 @@ Mở trình duyệt tại: http://localhost:3000
 
 **Môn học:** CS311 - Kĩ thuật lập trình Trí tuệ nhân tạo  
 **Trường:** Đại học Công nghệ Thông tin - ĐHQG TP.HCM
-
-## 📄 License
-
-MIT License - Xem [LICENSE](LICENSE) để biết thêm chi tiết.
