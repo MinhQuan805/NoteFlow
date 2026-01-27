@@ -1,19 +1,19 @@
 # NoteFlow 📚
 
-**Hệ thống quản lý và truy xuất tri thức từ tài liệu cá nhân**
+**Personal Document Knowledge Management and Retrieval System**
 
-NoteFlow là một ứng dụng RAG (Retrieval-Augmented Generation) cho phép người dùng chat với tài liệu cá nhân, tổ chức kiến thức theo Notebook, và tự động tạo bài thuyết trình.
+NoteFlow is a RAG (Retrieval-Augmented Generation) application that enables users to chat with personal documents, organize knowledge by notebooks, and automatically generate presentations.
 
-## ✨ Tính năng chính
+## ✨ Key Features
 
-- 📁 **Quản lý tài liệu** - Upload PDF, DOCX, TXT hoặc cào nội dung từ URL
-- 💬 **Chat thông minh** - Hỏi đáp với tài liệu, có trích dẫn nguồn
-- 🔍 **Hybrid Search** - Kết hợp BM25 (keyword) và Vector Search (semantic)
-- 🎯 **Intent Classification** - Tự động phân loại chat thường vs câu hỏi cần RAG
-- 📝 **Ghi chú** - Rich text editor tích hợp (BlockNote)
-- 🎨 **Tạo Slide tự động** - Sinh bài thuyết trình từ tài liệu với KaTeX support
+- 📁 **Document Management** - Upload PDF, DOCX, TXT, or scrape content from URLs
+- 💬 **Intelligent Chat** - Q&A with documents, with source citations
+- 🔍 **Hybrid Search** - Combines BM25 (keyword) and Vector Search (semantic)
+- 🎯 **Intent Classification** - Automatically categorizes general chat vs RAG-required queries
+- 📝 **Note-taking** - Integrated rich text editor (BlockNote)
+- 🎨 **Auto Slide Generation** - Creates presentations from documents with KaTeX support
 
-## 🏗️ Kiến trúc
+## 🏗️ Architecture
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────────────┐
@@ -27,7 +27,7 @@ NoteFlow là một ứng dụng RAG (Retrieval-Augmented Generation) cho phép n
                     └─────────────┘
 ```
 
-## 📁 Cấu trúc thư mục
+## 📁 Project Structure
 
 ```
 NoteFlow/
@@ -36,12 +36,12 @@ NoteFlow/
 ├── benchmark/        # Evaluation scripts & dataset
 ```
 
-## 🚀 Cài đặt
+## 🚀 Installation
 
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- MongoDB (local hoặc Atlas)
+- MongoDB (local or Atlas)
 
 ### 1. Clone repository
 ```bash
@@ -54,11 +54,12 @@ cd NoteFlow
 cd backend
 python -m venv venv
 venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
 ### 3. Environment Variables
-Tạo file `.env` trong `backend/`:
+Create `.env` file in `backend/`:
 ```env
 # LLM
 GOOGLE_API_KEY=your_gemini_api_key
@@ -68,7 +69,7 @@ LLAMA_PARSE_API_KEY=your_llamaparse_api_key
 
 # Database
 MONGO_URI=mongodb://localhost:27017
-# hoặc MongoDB Atlas connection string
+# or MongoDB Atlas connection string
 
 # File Storage (optional)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -82,12 +83,12 @@ cd frontend
 npm install
 ```
 
-Tạo file `.env.local`:
+Create `.env.local` file:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### 5. Chạy ứng dụng
+### 5. Run the Application
 
 **Terminal 1 - Backend:**
 ```bash
@@ -98,14 +99,15 @@ uvicorn main:app --reload --port 8000
 **Terminal 2 - Frontend:**
 ```bash
 cd frontend
-npm run dev
+npm run build
+npm run start
 ```
 
-Mở trình duyệt tại: http://localhost:3000
+Open your browser at: http://localhost:3000
 
 ## 📊 Benchmark
 
-Đánh giá trên 88 câu hỏi từ Stanford CS224N:
+Evaluated on 88 questions from Stanford CS224N:
 
 | Metric | Score |
 |--------|-------|
@@ -114,7 +116,7 @@ Mở trình duyệt tại: http://localhost:3000
 | Contains | 58.13% |
 | **Cosine Similarity** | **64.07%** |
 
-> Cosine Similarity cao chứng tỏ hệ thống truy xuất đúng thông tin, dù LLM diễn đạt lại bằng từ ngữ khác.
+> High Cosine Similarity demonstrates the system retrieves correct information, even when the LLM paraphrases using different wording.
 
 ## 🛠️ Tech Stack
 
@@ -127,12 +129,12 @@ Mở trình duyệt tại: http://localhost:3000
 | Parsing | LlamaParse |
 | Embeddings | all-MiniLM-L6-v2 |
 
-## 👥 Nhóm phát triển
+## 👥 Development Team
 
-| Họ tên | MSSV |
-|--------|------|
+| Name | Student ID |
+|------|------------|
 | Nguyễn Quốc Khánh | 24520793 |
 | Võ Minh Quân | 24521459 |
 
-**Môn học:** CS311 - Kĩ thuật lập trình Trí tuệ nhân tạo  
-**Trường:** Đại học Công nghệ Thông tin - ĐHQG TP.HCM
+**Course:** CS311 - Artificial Intelligence Programming Techniques  
+**Institution:** University of Information Technology - VNU-HCM
