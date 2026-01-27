@@ -18,7 +18,7 @@ NoteFlow is a RAG (Retrieval-Augmented Generation) application that enables user
 ## 🏗️ Architecture
 
 <div align="center">
-  <img width="500" height="600"  alt="software architecture" src="https://github.com/user-attachments/assets/2dbf964d-78b4-4245-9888-140a2a4caa01" />
+  <img width="300" height="400"  alt="software architecture" src="https://github.com/user-attachments/assets/2dbf964d-78b4-4245-9888-140a2a4caa01" />
 </div>
 
 ## 📁 Project Structure
